@@ -12,6 +12,7 @@ function setScene() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio); 
     renderer.setSize(window.innerWidth, window.innerHeight); 
+    renderer.setClearColor(0x5bb1cd, 1);
     document.body.appendChild(renderer.domElement); 
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
