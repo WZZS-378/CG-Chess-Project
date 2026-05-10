@@ -1,119 +1,104 @@
-// Must load AFTER pieces.js.
+// Must load AFTER build.js functions are available
 
-console.log(
-  "controls.js loaded, placePieces:",
-  typeof placePieces,
-  "menu:",
-  document.getElementById("menu"),
-);
+console.log("controls.js loaded");
 
 (function () {
+  // Wait for scene and functions to be available
+  if (typeof scene === "undefined" || typeof createChessBoard === "undefined" || typeof placePieces === "undefined") {
+    console.warn("Waiting for scene and required functions...");
+    setTimeout(arguments.callee, 100);
+    return;
+  }
+
   var state = {
-    pieceStyle: "classic",
-    materialType: "flat",
     whiteColor: "#faf0dc",
-    blackColor: "#1a1a1a",
+    blackColor: "#222222",
+    boardColor: "#8B4513",
   };
 
   function hexToInt(h) {
     return parseInt(h.replace("#", ""), 16);
   }
 
-  function push() {
-    placePieces({
-      pieceStyle: state.pieceStyle,
-      materialType: state.materialType,
-      whiteColor: hexToInt(state.whiteColor),
-      blackColor: hexToInt(state.blackColor),
-    });
+  function updateScene() {
+    const whitePieceHex = hexToInt(state.whiteColor);
+    const blackPieceHex = hexToInt(state.blackColor);
+    const boardHex = hexToInt(state.boardColor);
+
+    // Update board (black squares will use blackColor)
+    createChessBoard(0xffffff, blackPieceHex, boardHex);
+    // Update pieces
+    placePieces(whitePieceHex, blackPieceHex);
   }
 
   // ── Panel container ───────────────────────────────────────────────────────
   var panel = document.createElement("div");
   panel.style.cssText =
-    "background:#eee;padding:8px 12px;border:1px solid #999;font-size:13px;font-family:sans-serif;line-height:2";
-
-  // ── Piece style ───────────────────────────────────────────────────────────
-  var styleLabel = document.createElement("label");
-  styleLabel.textContent = "Piece style: ";
-
-  var styleSelect = document.createElement("select");
-  [
-    { value: "classic", text: "Classic" },
-    { value: "lowpoly", text: "Low Poly" },
-    { value: "military", text: "Military" },
-  ].forEach(function (o) {
-    var opt = document.createElement("option");
-    opt.value = o.value;
-    opt.textContent = o.text;
-    if (o.value === state.pieceStyle) opt.selected = true;
-    styleSelect.appendChild(opt);
-  });
-  styleSelect.addEventListener("change", function () {
-    state.pieceStyle = styleSelect.value;
-    push();
-  });
-
-  styleLabel.appendChild(styleSelect);
-  panel.appendChild(styleLabel);
-  panel.appendChild(document.createElement("br"));
-
-  // ── Material ──────────────────────────────────────────────────────────────
-  var matLabel = document.createElement("label");
-  matLabel.textContent = "Material: ";
-
-  var matSelect = document.createElement("select");
-  [
-    { value: "flat", text: "Flat" },
-    { value: "matte", text: "Matte" },
-    { value: "shiny", text: "Shiny" },
-    { value: "wood", text: "Wood" },
-    { value: "metallic", text: "Metallic" },
-    { value: "glass", text: "Glass" },
-  ].forEach(function (o) {
-    var opt = document.createElement("option");
-    opt.value = o.value;
-    opt.textContent = o.text;
-    if (o.value === state.materialType) opt.selected = true;
-    matSelect.appendChild(opt);
-  });
-  matSelect.addEventListener("change", function () {
-    state.materialType = matSelect.value;
-    push();
-  });
-
-  matLabel.appendChild(matSelect);
-  panel.appendChild(matLabel);
-  panel.appendChild(document.createElement("br"));
+    "background:#eee;padding:12px 14px;border:1px solid #999;font-size:13px;font-family:sans-serif;line-height:2.5;border-radius:6px";
 
   // ── White color ───────────────────────────────────────────────────────────
   var whiteLabel = document.createElement("label");
-  whiteLabel.textContent = "White: ";
+  whiteLabel.textContent = "White Pieces: ";
+  whiteLabel.style.cssText = "display:inline-block;width:120px";
+
   var whiteInput = document.createElement("input");
   whiteInput.type = "color";
   whiteInput.value = state.whiteColor;
+  whiteInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
   whiteInput.addEventListener("input", function () {
     state.whiteColor = whiteInput.value;
-    push();
+    updateScene();
   });
-  whiteLabel.appendChild(whiteInput);
-  panel.appendChild(whiteLabel);
-  panel.appendChild(document.createElement("br"));
+  
+  var whiteContainer = document.createElement("div");
+  whiteContainer.style.cssText = "margin-bottom:10px";
+  whiteContainer.appendChild(whiteLabel);
+  whiteContainer.appendChild(whiteInput);
+  panel.appendChild(whiteContainer);
 
-  // ── Black color ───────────────────────────────────────────────────────────
+  // ── Black color (controls both pieces AND board squares) ──────────────────
   var blackLabel = document.createElement("label");
-  blackLabel.textContent = "Black: ";
+  blackLabel.textContent = "Black Pieces & Squares: ";
+  blackLabel.style.cssText = "display:inline-block;width:120px";
+
   var blackInput = document.createElement("input");
   blackInput.type = "color";
   blackInput.value = state.blackColor;
+  blackInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
   blackInput.addEventListener("input", function () {
     state.blackColor = blackInput.value;
-    push();
+    updateScene();
   });
-  blackLabel.appendChild(blackInput);
-  panel.appendChild(blackLabel);
+  
+  var blackContainer = document.createElement("div");
+  blackContainer.style.cssText = "margin-bottom:10px";
+  blackContainer.appendChild(blackLabel);
+  blackContainer.appendChild(blackInput);
+  panel.appendChild(blackContainer);
 
-  // ── Mount & initial render ────────────────────────────────────────────────
+  // ── Board color ───────────────────────────────────────────────────────────
+  var boardLabel = document.createElement("label");
+  boardLabel.textContent = "Board Color: ";
+  boardLabel.style.cssText = "display:inline-block;width:120px";
+
+  var boardInput = document.createElement("input");
+  boardInput.type = "color";
+  boardInput.value = state.boardColor;
+  boardInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
+  boardInput.addEventListener("input", function () {
+    state.boardColor = boardInput.value;
+    updateScene();
+  });
+  
+  var boardContainer = document.createElement("div");
+  boardContainer.style.cssText = "margin-bottom:0px";
+  boardContainer.appendChild(boardLabel);
+  boardContainer.appendChild(boardInput);
+  panel.appendChild(boardContainer);
+
+  // ── Mount panel ────────────────────────────────────────────────────────────
   (document.getElementById("menu") || document.body).appendChild(panel);
-  push();
 })();
