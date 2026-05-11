@@ -57,26 +57,46 @@ function loadPieceModel(pieceType, path) {
             return;
         }
 
-        const mtlLoader = new THREE.MTLLoader();
         const objLoader = new THREE.OBJLoader();
 
+        function loadObj() {
+            objLoader.load(
+                path + ".obj",
+                function (object) {
+                    // Rotate upright (models exported Z-up / lying flat)
+                    object.rotation.x = -Math.PI / 2;
+                    object.updateMatrixWorld(true);
+
+                    // Compute bounding box in the rotated orientation and
+                    // shift so the piece is centred in X/Z with its base at Y=0
+                    const box = new THREE.Box3().setFromObject(object);
+                    const center = box.getCenter(new THREE.Vector3());
+                    object.position.set(-center.x, -box.min.y, -center.z);
+
+                    // Wrap in a Group so colorizeModel's clone preserves the offset
+                    const wrapper = new THREE.Group();
+                    wrapper.add(object);
+                    modelCache[pieceType] = wrapper;
+                    resolve(wrapper);
+                },
+                undefined,
+                reject
+            );
+        }
+
+        const mtlLoader = new THREE.MTLLoader();
         mtlLoader.load(
             path + ".mtl",
             function (materials) {
                 materials.preload();
                 objLoader.setMaterials(materials);
-                objLoader.load(
-                    path + ".obj",
-                    function (object) {
-                        modelCache[pieceType] = object;
-                        resolve(object);
-                    },
-                    undefined,
-                    reject
-                );
+                loadObj();
             },
             undefined,
-            reject
+            function () {
+                // No .mtl file — load OBJ with default materials
+                loadObj();
+            }
         );
     });
 }
@@ -100,21 +120,21 @@ async function placePieces(whitePieceColor, blackPieceColor) {
     }
     piecesGroup = new THREE.Group();
 
-    // Piece order for a chess row
+    // Piece order for a chess back rank (a–h files)
     const pieceOrder = [
-        { type: "rook", path: "models/ChessRook/ChessRook" },
-        { type: "knight", path: "models/ChessKnight/ChessKnight" },
-        { type: "bishop", path: "models/ChessBishop/ChessBishop" },
-        { type: "queen", path: "models/ChessQueen/ChessQueen" },
-        { type: "king", path: "models/ChessKing/ChessKing" },
-        { type: "bishop", path: "models/ChessBishop/ChessBishop" },
-        { type: "knight", path: "models/ChessKnight/ChessKnight" },
-        { type: "rook", path: "models/ChessRook/ChessRook" },
+        { type: "rook",   path: "models/chess/rook" },
+        { type: "knight", path: "models/chess/knight" },
+        { type: "bishop", path: "models/chess/bishop" },
+        { type: "queen",  path: "models/chess/queen" },
+        { type: "king",   path: "models/chess/king" },
+        { type: "bishop", path: "models/chess/bishop" },
+        { type: "knight", path: "models/chess/knight" },
+        { type: "rook",   path: "models/chess/rook" },
     ];
 
     // Load each unique piece type
     try {
-        await loadPieceModel("pawn", "models/ChessPawn/ChessPawn");
+        await loadPieceModel("pawn", "models/chess/pawn");
         for (const piece of pieceOrder) {
             await loadPieceModel(piece.type, piece.path);
         }
@@ -123,30 +143,40 @@ async function placePieces(whitePieceColor, blackPieceColor) {
         return;
     }
 
-    // Place white pieces (bottom)
-    for (let x = 0; x < 8; x++) {
-        // Pawns (z=1)
-        const pawn = colorizeModel(modelCache["pawn"], whitePieceColor);
-        pawn.scale.set(0.18, 0.18, 0.18);
-        pawn.position.set(x - 6.5, 0.12, -0.4);
-        pawn.rotation.x = Math.PI / 2;
-        pawn.rotation.y = Math.PI;
-        piecesGroup.add(pawn);
-    }
-
-    // Place black pieces (top)
-    for (let x = 0; x < 8; x++) {
-        // Pawns (z=6)
-        const pawn = colorizeModel(modelCache["pawn"], blackPieceColor);
-        pawn.scale.set(0.18, 0.18, 0.18);
-        pawn.position.set(x - 6.5, 0.12, 4.6);
-        pawn.rotation.x = Math.PI / 2;
-        pawn.rotation.y = Math.PI;
-        piecesGroup.add(pawn);
-    }
-
     const mainPieces = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 
+    // Single loop places all four rows (white back rank + pawns, black pawns + back rank).
+    // Board squares sit at (col - 3.5, 0, row - 3.5) for col/row 0–7.
+    // Rotation.x is baked into each wrapper; rotation.y faces pieces toward the opponent.
+    for (let col = 0; col < 8; col++) {
+        // White pawn — row 1
+        const wPawn = colorizeModel(modelCache["pawn"], whitePieceColor);
+        wPawn.scale.set(0.18, 0.18, 0.18);
+        wPawn.position.set(col - 3.5, 0.1, -2.5);
+        wPawn.rotation.y = Math.PI;
+        piecesGroup.add(wPawn);
+
+        // White back rank — row 0
+        const wBack = colorizeModel(modelCache[mainPieces[col]], whitePieceColor);
+        wBack.scale.set(0.18, 0.18, 0.18);
+        wBack.position.set(col - 3.5, 0.1, -3.5);
+        wBack.rotation.y = Math.PI;
+        piecesGroup.add(wBack);
+
+        // Black pawn — row 6
+        const bPawn = colorizeModel(modelCache["pawn"], blackPieceColor);
+        bPawn.scale.set(0.18, 0.18, 0.18);
+        bPawn.position.set(col - 3.5, 0.1, 2.5);
+        bPawn.rotation.y = 0;
+        piecesGroup.add(bPawn);
+
+        // Black back rank — row 7
+        const bBack = colorizeModel(modelCache[mainPieces[col]], blackPieceColor);
+        bBack.scale.set(0.18, 0.18, 0.18);
+        bBack.position.set(col - 3.5, 0.1, 3.5);
+        bBack.rotation.y = 0;
+        piecesGroup.add(bBack);
+    }
 
     scene.add(piecesGroup);
     console.log("Pieces placed:", piecesGroup.children.length);
