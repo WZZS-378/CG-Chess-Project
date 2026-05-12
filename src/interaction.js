@@ -49,6 +49,12 @@ function clearHighlights() {
     highlightedSquares = [];
 }
 
+// Called when the board mesh is rebuilt (e.g. colour pickers) — drop selection.
+function resetBoardInteraction() {
+    clearHighlights();
+    selectedSquare = null;
+}
+
 // Raycasting
 // Returns the boardIndex of the square under the cursor, or null if none.
 function getClickedSquare(event) {
