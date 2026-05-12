@@ -4,7 +4,11 @@ console.log("controls.js loaded");
 
 (function () {
   // Wait for scene and functions to be available
-  if (typeof scene === "undefined" || typeof createChessBoard === "undefined" || typeof placePieces === "undefined") {
+  if (
+    typeof scene === "undefined" ||
+    typeof createChessBoard === "undefined" ||
+    typeof refreshBoard3D === "undefined"
+  ) {
     console.warn("Waiting for scene and required functions...");
     setTimeout(arguments.callee, 100);
     return;
@@ -25,10 +29,12 @@ console.log("controls.js loaded");
     const blackPieceHex = hexToInt(state.blackColor);
     const boardHex = hexToInt(state.boardColor);
 
-    // Update board (black squares will use blackColor)
-    createChessBoard(0xffffff, blackPieceHex, boardHex);
-    // Update pieces
-    placePieces(whitePieceHex, blackPieceHex);
+    createChessBoard(whitePieceHex, blackPieceHex, boardHex);
+
+    currentWhitePieceColor = whitePieceHex;
+    currentBlackPieceColor = blackPieceHex;
+    refreshBoard3D();
+    if (typeof resetBoardInteraction === "function") resetBoardInteraction();
   }
 
   // ── Panel container ───────────────────────────────────────────────────────
