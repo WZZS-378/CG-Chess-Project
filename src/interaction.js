@@ -6,7 +6,8 @@ let selectedSquare     = null;
 let highlightedSquares = [];
 
 const HIGHLIGHT_SELECTED = 0xffcc00;  // gold  — the square of the selected piece
-const HIGHLIGHT_MOVE     = 0x44aa44;  // green — valid move targets
+const HIGHLIGHT_MOVE     = 0x44aa44;  // green — valid move (empty square)
+const HIGHLIGHT_CAPTURE  = 0xdd3333;  // red   — valid capture (enemy piece)
 
 // Highlight Helpers
 function highlightSquares(moveTargets, selectedIdx) {
@@ -15,7 +16,10 @@ function highlightSquares(moveTargets, selectedIdx) {
     if (selectedIdx !== undefined) {
         const mesh = squareMeshByIndex[selectedIdx];
         if (mesh) {
-            mesh.material.color.setHex(HIGHLIGHT_SELECTED);
+            const isBlack = (sqRow(selectedIdx) + sqCol(selectedIdx)) % 2 === 1;
+            const base = new THREE.Color(isBlack ? blackSquareColor : whiteSquareColor);
+            base.lerp(new THREE.Color(HIGHLIGHT_SELECTED), 0.55);
+            mesh.material.color.copy(base);
             highlightedSquares.push(selectedIdx);
         }
     }
@@ -23,7 +27,12 @@ function highlightSquares(moveTargets, selectedIdx) {
     for (const idx of moveTargets) {
         const mesh = squareMeshByIndex[idx];
         if (!mesh) continue;
-        mesh.material.color.setHex(HIGHLIGHT_MOVE);
+        const isBlack   = (sqRow(idx) + sqCol(idx)) % 2 === 1;
+        const isCapture = gameState.board[idx] !== null;
+        const tint      = isCapture ? HIGHLIGHT_CAPTURE : HIGHLIGHT_MOVE;
+        const base      = new THREE.Color(isBlack ? blackSquareColor : whiteSquareColor);
+        base.lerp(new THREE.Color(tint), 0.55);
+        mesh.material.color.copy(base);
         highlightedSquares.push(idx);
     }
 }
