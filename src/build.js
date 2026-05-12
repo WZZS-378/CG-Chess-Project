@@ -1,4 +1,3 @@
-
 // Define the chess board parameters
 let boardSize = 8, squareSize = 1;
 let boardColor = 0x8B4513; // Default board color (brown)
