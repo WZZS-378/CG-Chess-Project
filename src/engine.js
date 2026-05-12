@@ -190,3 +190,119 @@ function getCandidateMoves(board, state, fromIdx) {
         default:       return [];
     }
 }
+
+// Check Detection Function
+function isInCheck(board, color) {
+    const kingIdx = board.findIndex(p => p && p.type === 'king' && p.color === color);
+    if (kingIdx === -1) return false;
+
+    // A minimal state stub — castling and en passant don't affect attack detection
+    const stub = {
+        enPassantSquare: null,
+        castling: { white: { kingside: false, queenside: false },
+                    black: { kingside: false, queenside: false } },
+    };
+
+    const opponent = color === 'white' ? 'black' : 'white';
+    for (let i = 0; i < 64; i++) {
+        const p = board[i];
+        if (!p || p.color !== opponent) continue;
+        if (getCandidateMoves(board, stub, i).includes(kingIdx)) return true;
+    }
+    return false;
+}
+
+// Apply Move Function
+function applyMove(state, move) {
+    const next = deepCloneState(state);
+    const p    = next.board[move.from];
+
+    next.board[move.to]   = p;
+    next.board[move.from] = EMPTY;
+    p.hasMoved = true;
+
+    // En passant capture — remove the pawn that was skipped over
+    if (p.type === 'pawn' && move.to === state.enPassantSquare) {
+        const dir = p.color === 'white' ? 1 : -1;
+        next.board[move.to - dir * 8] = EMPTY;
+    }
+
+    // Set new en passant square on double push
+    next.enPassantSquare = null;
+    if (p.type === 'pawn' && Math.abs(move.to - move.from) === 16) {
+        next.enPassantSquare = (move.from + move.to) / 2;
+    }
+
+    // Castling — also slide the rook to its new square
+    if (p.type === 'king' && Math.abs(sqCol(move.to) - sqCol(move.from)) === 2) {
+        const br = p.color === 'white' ? 0 : 7;
+        if (sqCol(move.to) === 6) {                          // kingside
+            next.board[sqIdx(br, 5)] = next.board[sqIdx(br, 7)];
+            next.board[sqIdx(br, 7)] = EMPTY;
+            if (next.board[sqIdx(br, 5)]) next.board[sqIdx(br, 5)].hasMoved = true;
+        } else {                                              // queenside
+            next.board[sqIdx(br, 3)] = next.board[sqIdx(br, 0)];
+            next.board[sqIdx(br, 0)] = EMPTY;
+            if (next.board[sqIdx(br, 3)]) next.board[sqIdx(br, 3)].hasMoved = true;
+        }
+    }
+
+    // Promotion — defaults to queen; pass move.promotion to choose another piece
+    if (p.type === 'pawn' && (sqRow(move.to) === 0 || sqRow(move.to) === 7)) {
+        next.board[move.to] = piece(move.promotion || 'queen', p.color);
+    }
+
+    // Revoke castling rights when king or rook moves
+    if (p.type === 'king') {
+        next.castling[p.color].kingside  = false;
+        next.castling[p.color].queenside = false;
+    }
+    if (p.type === 'rook') {
+        const br = p.color === 'white' ? 0 : 7;
+        if (move.from === sqIdx(br, 0)) next.castling[p.color].queenside = false;
+        if (move.from === sqIdx(br, 7)) next.castling[p.color].kingside  = false;
+    }
+
+    // 50-move clock resets on pawn moves and captures
+    next.halfMoveClock = (p.type === 'pawn' || state.board[move.to] !== EMPTY)
+        ? 0
+        : state.halfMoveClock + 1;
+
+    next.turn = state.turn === 'white' ? 'black' : 'white';
+    next.moveHistory.push(move);
+
+    return next;
+}
+
+// Legal Move Filtering Function
+function getLegalMoves(state, fromIdx) {
+    const p = state.board[fromIdx];
+    if (!p) return [];
+
+    return getCandidateMoves(state.board, state, fromIdx).filter(toIdx => {
+        // Extra check for castling: king must not pass through an attacked square
+        if (p.type === 'king' && Math.abs(sqCol(toIdx) - sqCol(fromIdx)) === 2) {
+            const passThroughCol = sqCol(fromIdx) + Math.sign(sqCol(toIdx) - sqCol(fromIdx));
+            const midBoard = state.board.map(x => x ? { ...x } : EMPTY);
+            midBoard[sqIdx(sqRow(fromIdx), passThroughCol)] = midBoard[fromIdx];
+            midBoard[fromIdx] = EMPTY;
+            if (isInCheck(midBoard, p.color)) return false;
+        }
+
+        const next = applyMove(state, { from: fromIdx, to: toIdx });
+        return !isInCheck(next.board, p.color);
+    });
+}
+
+// Game Status Function
+function getGameStatus(state) {
+    const hasLegalMoves = state.board.some(
+        (p, i) => p && p.color === state.turn && getLegalMoves(state, i).length > 0
+    );
+
+    if (!hasLegalMoves) {
+        return isInCheck(state.board, state.turn) ? 'checkmate' : 'stalemate';
+    }
+    if (state.halfMoveClock >= 100) return 'draw-50move';
+    return 'playing';
+}
