@@ -6,6 +6,11 @@ let whiteSquareColor = 0xffffff;
 let blackSquareColor = 0x222222; // Now same variable as black piece color
 let chessboardGroup = null;
 
+// Flat array of all 64 square meshes — used by Raycaster in interaction.js
+let squareMeshes = [];
+// boardIndex → mesh lookup — used by the highlight system in interaction.js
+let squareMeshByIndex = {};
+
 function createChessBoard(whiteCol, blackCol, boardCol) {
     // Remove old board if exists
     if (chessboardGroup) {
@@ -30,6 +35,8 @@ function createChessBoard(whiteCol, blackCol, boardCol) {
     chessboardGroup.add(board);
 
     // Create the chess board squares - black squares use blackSquareColor
+    squareMeshes = [];
+    squareMeshByIndex = {};
     for (let x = 0; x < boardSize; x++) {
         for (let z = 0; z < boardSize; z++) {
             let isBlackSquare = (x + z) % 2 === 1;
@@ -40,6 +47,15 @@ function createChessBoard(whiteCol, blackCol, boardCol) {
             
             var square = new THREE.Mesh(squareGeometry, squareMaterial);
             square.position.set(x - 3.5, 0, z - 3.5);
+
+            // Tag each square so the raycaster and highlight system can identify it.
+            // boardIndex = row * 8 + col  (row = z, col = x — matches engine.js layout)
+            const boardIdx = z * 8 + x;
+            square.userData.boardIndex = boardIdx;
+            square.userData.type = 'square';
+            squareMeshes.push(square);
+            squareMeshByIndex[boardIdx] = square;
+
             chessboardGroup.add(square);
         }
     }
