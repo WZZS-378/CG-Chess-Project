@@ -36,14 +36,14 @@ function createChessBoard(whiteCol, blackCol, boardCol) {
     squareMeshByIndex = {};
     for (let x = 0; x < boardSize; x++) {
         for (let z = 0; z < boardSize; z++) {
-            let isBlackSquare = (x + z) % 2 === 1;
+            let isBlackSquare = (x + z) % 2 === 0;
             var squareGeometry = new THREE.BoxGeometry(squareSize, 0.2, squareSize);
             var squareMaterial = new THREE.MeshBasicMaterial({ 
                 color: isBlackSquare ? blackCol : whiteCol
             });
             
             var square = new THREE.Mesh(squareGeometry, squareMaterial);
-            square.position.set(x - 3.5, 0, z - 3.5);
+            square.position.set(3.5 - x, 0, z - 3.5);
 
             // Tag each square so the raycaster and highlight system can identify it.
             // boardIndex = row * 8 + col  (row = z, col = x — matches engine.js layout)

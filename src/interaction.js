@@ -16,7 +16,7 @@ function highlightSquares(moveTargets, selectedIdx) {
     if (selectedIdx !== undefined) {
         const mesh = squareMeshByIndex[selectedIdx];
         if (mesh) {
-            const isBlack = (sqRow(selectedIdx) + sqCol(selectedIdx)) % 2 === 1;
+            const isBlack = (sqRow(selectedIdx) + sqCol(selectedIdx)) % 2 === 0;
             const base = new THREE.Color(isBlack ? blackSquareColor : whiteSquareColor);
             base.lerp(new THREE.Color(HIGHLIGHT_SELECTED), 0.55);
             mesh.material.color.copy(base);
@@ -27,7 +27,7 @@ function highlightSquares(moveTargets, selectedIdx) {
     for (const idx of moveTargets) {
         const mesh = squareMeshByIndex[idx];
         if (!mesh) continue;
-        const isBlack   = (sqRow(idx) + sqCol(idx)) % 2 === 1;
+        const isBlack   = (sqRow(idx) + sqCol(idx)) % 2 === 0;
         const isCapture = gameState.board[idx] !== null;
         const tint      = isCapture ? HIGHLIGHT_CAPTURE : HIGHLIGHT_MOVE;
         const base      = new THREE.Color(isBlack ? blackSquareColor : whiteSquareColor);
@@ -43,7 +43,7 @@ function clearHighlights() {
         if (!mesh) continue;
         // Restore the square's original colour from the board pattern.
         // sqRow / sqCol are helpers defined in engine.js.
-        const isBlack = (sqRow(idx) + sqCol(idx)) % 2 === 1;
+        const isBlack = (sqRow(idx) + sqCol(idx)) % 2 === 0;
         mesh.material.color.setHex(isBlack ? blackSquareColor : whiteSquareColor);
     }
     highlightedSquares = [];

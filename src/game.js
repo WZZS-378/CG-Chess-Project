@@ -22,7 +22,7 @@ function refreshBoard3D() {
 
         const mesh = colorizeModel(modelCache[p.type], color);
         mesh.scale.set(0.18, 0.18, 0.18);
-        mesh.position.set(c - 3.5, 0.1, r - 3.5);
+        mesh.position.set(3.5 - c, 0.1, r - 3.5);
         mesh.rotation.y = p.color === 'white' ? Math.PI : 0;
         mesh.userData.boardIndex = i;
         mesh.userData.type = 'piece';
