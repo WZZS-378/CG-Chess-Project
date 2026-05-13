@@ -1,110 +1,158 @@
+// Define the chess board parameters
+let boardSize = 8, squareSize = 1;
+let boardColor = 0x8B4513; // Default board color (brown)
+let whiteSquareColor = 0xffffff;
+let blackSquareColor = 0x222222; // Now same variable as black piece color
+let chessboardGroup = null;
 
+// Flat array of all 64 square meshes — used by Raycaster in interaction.js
+let squareMeshes = [];
+// boardIndex → mesh lookup — used by the highlight system in interaction.js
+let squareMeshByIndex = {};
 
-function createCube(size, color) {
-    var material = new THREE.MeshBasicMaterial();
-    material.color = new THREE.Color(color);
-    material.wireframe = false;
-    var geometry = new THREE.BoxGeometry(size, size, size);
-    var cube = new THREE.Mesh(geometry, material);
-    return cube;
-}
-
-function createCilinder(size, color) {
-    var material = new THREE.MeshBasicMaterial();
-    material.color = new THREE.Color(color);
-    material.wireframe = false;
-    var geometry = new THREE.CylinderGeometry(size / 2, size / 2, size, 32);
-    var cilinder = new THREE.Mesh(geometry, material);
-    return cilinder;
-}
-
-function createVillage(numOfHouses, size) {
-    let village = new THREE.Group();
-    for (let i = 0; i < numOfHouses; i++) {
-        let house = createCube(size, 0x8B4513); // brown houses
-        village.add(house);
+function createChessBoard(whiteCol, blackCol, boardCol) {
+    // Remove old board if exists
+    if (chessboardGroup) {
+        scene.remove(chessboardGroup);
     }
-    return village;
-}
-
-function createCastle(size) {
-    // Create a castle using a single cube
-    let castle = new THREE.Group();
-
-    let base = createCube(size * 1.2, 0x808080); // gray base
-    base.scale.y = size * 1.2; 
-    castle.add(base);
-
-    tower1 = createCilinder(size / 2, 0x696969); // darker gray towers
-    tower1.position.set(-size / 2, 0, -size / 2);
-    tower1.scale.y = size * 3.5;
-    castle.add(tower1);
-
-    tower2 = createCilinder(size / 2, 0x696969);    
-    tower2.position.set(size / 2, 0, -size / 2);
-    tower2.scale.y = size * 3.5;
-    castle.add(tower2);
-
-    tower3 = createCilinder(size / 2, 0x696969);
-    tower3.position.set(-size / 2, 0, size / 2);
-    tower3.scale.y = size * 3.5;
-    castle.add(tower3);
-
-    tower4 = createCilinder(size / 2, 0x696969);
-    tower4.position.set(size / 2, 0, size / 2);
-    tower4.scale.y = size * 3.5;
-    castle.add(tower4);
-
-    return castle;
-}
-
-// Generate a grid of cubes with random heights/colors for terrain
-function generateTerrainGrid(rows, cols, spacing, baseSize, minHeight, maxHeight, housesChance, castlesChance) {
-    spacing = baseSize * 1.05; // adjust spacing based on base size to prevent overlap
     
-    // Loop through grid positions and create cubes with random heights and colors
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-            var baseColor;
+    chessboardGroup = new THREE.Group();
+    
+    // Store colors globally
+    whiteSquareColor = whiteCol;
+    blackSquareColor = blackCol;
+    boardColor = boardCol;
+    
+    // Create the chess board base
+    var boardGeometry = new THREE.BoxGeometry(boardSize + 3, 0.01, boardSize + 3);
+    var boardMaterial = new THREE.MeshBasicMaterial({ color: boardCol });
 
-            // Compute x and z positions based on grid indices and spacing
-            let x = (j - cols / 2) * spacing;
-            let z = (i - rows / 2) * spacing;
+    var board = new THREE.Mesh(boardGeometry, boardMaterial);
+    board.position.set(0, -0.12, 0);
+    chessboardGroup.add(board);
 
-            // Random height for terrain effect
-            let height = minHeight + Math.random() * (maxHeight - minHeight);
+    // Create the chess board squares
+    squareMeshes = [];
+    squareMeshByIndex = {};
+    for (let x = 0; x < boardSize; x++) {
+        for (let z = 0; z < boardSize; z++) {
+            let isBlackSquare = (x + z) % 2 === 0;
+            var squareGeometry = new THREE.BoxGeometry(squareSize, 0.2, squareSize);
+            var squareMaterial = new THREE.MeshBasicMaterial({ 
+                color: isBlackSquare ? blackCol : whiteCol
+            });
+            
+            var square = new THREE.Mesh(squareGeometry, squareMaterial);
+            square.position.set(3.5 - x, 0, z - 3.5);
 
-            // Add different colors tone based on height
-            if (height < minHeight + (maxHeight - minHeight) * 0.4){
-                baseColor = 0x4ea24e;
-            } else if (height < minHeight + (maxHeight - minHeight) * 0.7){
-                baseColor = 0x389638;
-            } else {
-                baseColor = 0x228B22;
-            }
+            // Tag each square so the raycaster and highlight system can identify it.
+            // boardIndex = row * 8 + col  (row = z, col = x — matches engine.js layout)
+            const boardIdx = z * 8 + x;
+            square.userData.boardIndex = boardIdx;
+            square.userData.type = 'square';
+            squareMeshes.push(square);
+            squareMeshByIndex[boardIdx] = square;
 
-            // Add random structures on some cubes
-            if (Math.random() < housesChance && height < minHeight + (maxHeight - minHeight) * 0.4) { // chance to add a village on lower terrain
-                let village = createVillage(3, baseSize / 2);
-                village.position.set(x, height * baseSize, z);
-                scene.add(village);
-
-            } else if (Math.random() < castlesChance && height > minHeight + (maxHeight - minHeight) * 0.7) { // chance to add a castle on higher terrain
-                let castle = createCastle(baseSize / 2);
-                castle.position.set(x, height * baseSize, z);
-                scene.add(castle);
-            }
-
-            // Create cube, scale by height, position on grid, and add to scene
-            let cube = createCube(baseSize, baseColor);
-            cube.scale.y = height;
-            cube.position.set(x, (baseSize * height) / 2, z);
-            scene.add(cube);
+            chessboardGroup.add(square);
         }
+    }
+    scene.add(chessboardGroup);
+}
+
+// Global cache for loaded piece models
+let modelCache = {};
+let piecesGroup = null;
+
+// Load individual piece models with caching
+function loadPieceModel(pieceType, path) {
+    return new Promise((resolve, reject) => {
+        if (modelCache[pieceType]) {
+            resolve(modelCache[pieceType]);
+            return;
+        }
+
+        const objLoader = new THREE.OBJLoader();
+
+        function loadObj() {
+            objLoader.load(
+                path + ".obj",
+                function (object) {
+                    // Rotate upright (models exported Z-up / lying flat)
+                    object.rotation.x = -Math.PI / 2;
+                    object.updateMatrixWorld(true);
+
+                    // Compute bounding box in the rotated orientation and
+                    // shift so the piece is centred in X/Z with its base at Y=0
+                    const box = new THREE.Box3().setFromObject(object);
+                    const center = box.getCenter(new THREE.Vector3());
+                    object.position.set(-center.x, -box.min.y, -center.z);
+
+                    // Wrap in a Group so colorizeModel's clone preserves the offset
+                    const wrapper = new THREE.Group();
+                    wrapper.add(object);
+                    modelCache[pieceType] = wrapper;
+                    resolve(wrapper);
+                },
+                undefined,
+                reject
+            );
+        }
+
+        const mtlLoader = new THREE.MTLLoader();
+        mtlLoader.load(
+            path + ".mtl",
+            function (materials) {
+                materials.preload();
+                objLoader.setMaterials(materials);
+                loadObj();
+            },
+            undefined,
+            function () {
+                // No .mtl file — load OBJ with default materials
+                loadObj();
+            }
+        );
+    });
+}
+
+// Apply color to cloned model
+function colorizeModel(object, color) {
+    const cloned = object.clone();
+    cloned.traverse(function (child) {
+        if (child.isMesh) {
+            child.material = new THREE.MeshPhongMaterial({ color: color });
+        }
+    });
+    return cloned;
+}
+
+// Loads all six piece types into modelCache.
+// Called once on startup; subsequent calls return immediately from the cache.
+async function loadAllModels() {
+    const pieces = [
+        { type: "pawn",   path: "models/chess/pawn"   },
+        { type: "rook",   path: "models/chess/rook"   },
+        { type: "knight", path: "models/chess/knight" },
+        { type: "bishop", path: "models/chess/bishop" },
+        { type: "queen",  path: "models/chess/queen"  },
+        { type: "king",   path: "models/chess/king"   },
+    ];
+    for (const p of pieces) {
+        await loadPieceModel(p.type, p.path);
     }
 }
 
 // Define the add shapes function
-function addShapes(){
-        generateTerrainGrid(8, 8, 3.0, 3, 0.5, 1, 0.4, 0.05);
+function addShapes() {
+    createChessBoard(0xffffff, 0x222222, 0x8B4513);
+
+    if (typeof THREE.OBJLoader === "undefined" || typeof THREE.MTLLoader === "undefined") {
+        console.error("OBJLoader or MTLLoader not loaded");
+        return;
+    }
+
+    // Load all models
+    loadAllModels().then(function () {
+        if (typeof startGame === "function") startGame(); // To-Do: Implement startGame function
+    });
 }

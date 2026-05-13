@@ -1,53 +1,110 @@
-// src/controls.js
-// dat.GUI controls for real-time parameter adjustment
+// Must load AFTER build.js functions are available
 
-// Default parameters for terrain and structures
-const params = {
-    rows: 8,
-    cols: 8,
-    spacing: 3.0,
-    baseSize: 3,
-    minHeight: 0.5,
-    maxHeight: 1,
-    housesChance: 0.4,
-    castlesChance: 0.05,
-    regenerate: function() {
-        // Remove all objects except camera/lights (assumes scene is global)
-        for (let i = scene.children.length - 1; i >= 0; i--) {
-            let obj = scene.children[i];
-            if (!(obj.isCamera || obj.isLight)) {
-                scene.remove(obj);
-            }
-        }
-        // Rebuild terrain
-        generateTerrainGrid(
-            params.rows,
-            params.cols,
-            params.spacing,
-            params.baseSize,
-            params.minHeight,
-            params.maxHeight,
-            params.housesChance,
-            params.castlesChance
-        );
-    }
-};
+console.log("controls.js loaded");
 
-// Initialize dat.GUI
-window.addEventListener('DOMContentLoaded', function() {
-    if (typeof dat === 'undefined') return;
-    let gui = new dat.GUI({ autoPlace: false });
-    document.getElementById('menu').appendChild(gui.domElement);
-// Add controls for parameters
-    gui.add(params, 'rows', 2, 30, 1).onFinishChange(params.regenerate);
-    gui.add(params, 'cols', 2, 30, 1).onFinishChange(params.regenerate);
-    gui.add(params, 'baseSize', 1, 10, 0.1).onFinishChange(params.regenerate);
-    gui.add(params, 'minHeight', 0.1, 2, 0.1).onFinishChange(params.regenerate);
-    gui.add(params, 'maxHeight', 0.2, 2, 0.1).onFinishChange(params.regenerate);
-    gui.add(params, 'housesChance', 0, 1, 0.01).onFinishChange(params.regenerate);
-    gui.add(params, 'castlesChance', 0, 1, 0.01).onFinishChange(params.regenerate);
-    gui.add(params, 'regenerate').name('Regenerate Terrain');
+(function () {
+  // Wait for scene and functions to be available
+  if (
+    typeof scene === "undefined" ||
+    typeof createChessBoard === "undefined" ||
+    typeof refreshBoard3D === "undefined"
+  ) {
+    console.warn("Waiting for scene and required functions...");
+    setTimeout(arguments.callee, 100);
+    return;
+  }
 
-    // Initial build
-    params.regenerate();
-});
+  var state = {
+    whiteColor: "#faf0dc",
+    blackColor: "#222222",
+    boardColor: "#8B4513",
+  };
+
+  function hexToInt(h) {
+    return parseInt(h.replace("#", ""), 16);
+  }
+
+  function updateScene() {
+    const whitePieceHex = hexToInt(state.whiteColor);
+    const blackPieceHex = hexToInt(state.blackColor);
+    const boardHex = hexToInt(state.boardColor);
+
+    createChessBoard(whitePieceHex, blackPieceHex, boardHex);
+
+    currentWhitePieceColor = whitePieceHex;
+    currentBlackPieceColor = blackPieceHex;
+    refreshBoard3D();
+    if (typeof resetBoardInteraction === "function") resetBoardInteraction();
+  }
+
+  // ── Panel container ───────────────────────────────────────────────────────
+  var panel = document.createElement("div");
+  panel.style.cssText =
+    "background:#eee;padding:12px 14px;border:1px solid #999;font-size:13px;font-family:sans-serif;line-height:2.5;border-radius:6px";
+
+  // ── White color ───────────────────────────────────────────────────────────
+  var whiteLabel = document.createElement("label");
+  whiteLabel.textContent = "White Pieces: ";
+  whiteLabel.style.cssText = "display:inline-block;width:120px";
+
+  var whiteInput = document.createElement("input");
+  whiteInput.type = "color";
+  whiteInput.value = state.whiteColor;
+  whiteInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
+  whiteInput.addEventListener("input", function () {
+    state.whiteColor = whiteInput.value;
+    updateScene();
+  });
+  
+  var whiteContainer = document.createElement("div");
+  whiteContainer.style.cssText = "margin-bottom:10px";
+  whiteContainer.appendChild(whiteLabel);
+  whiteContainer.appendChild(whiteInput);
+  panel.appendChild(whiteContainer);
+
+  // ── Black color (controls both pieces AND board squares) ──────────────────
+  var blackLabel = document.createElement("label");
+  blackLabel.textContent = "Black Pieces & Squares: ";
+  blackLabel.style.cssText = "display:inline-block;width:120px";
+
+  var blackInput = document.createElement("input");
+  blackInput.type = "color";
+  blackInput.value = state.blackColor;
+  blackInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
+  blackInput.addEventListener("input", function () {
+    state.blackColor = blackInput.value;
+    updateScene();
+  });
+  
+  var blackContainer = document.createElement("div");
+  blackContainer.style.cssText = "margin-bottom:10px";
+  blackContainer.appendChild(blackLabel);
+  blackContainer.appendChild(blackInput);
+  panel.appendChild(blackContainer);
+
+  // ── Board color ───────────────────────────────────────────────────────────
+  var boardLabel = document.createElement("label");
+  boardLabel.textContent = "Board Color: ";
+  boardLabel.style.cssText = "display:inline-block;width:120px";
+
+  var boardInput = document.createElement("input");
+  boardInput.type = "color";
+  boardInput.value = state.boardColor;
+  boardInput.style.cssText =
+    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
+  boardInput.addEventListener("input", function () {
+    state.boardColor = boardInput.value;
+    updateScene();
+  });
+  
+  var boardContainer = document.createElement("div");
+  boardContainer.style.cssText = "margin-bottom:0px";
+  boardContainer.appendChild(boardLabel);
+  boardContainer.appendChild(boardInput);
+  panel.appendChild(boardContainer);
+
+  // ── Mount panel ────────────────────────────────────────────────────────────
+  (document.getElementById("menu") || document.body).appendChild(panel);
+})();
