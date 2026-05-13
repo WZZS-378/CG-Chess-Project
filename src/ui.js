@@ -15,28 +15,54 @@
   }
 
   function push() {
-    placePieces({
-      pieceStyle: state.pieceStyle,
-      material: state.material,
-      whiteColor: hexToInt(state.whiteColor),
-      blackColor: hexToInt(state.blackColor),
-    });
+    currentWhitePieceColor = hexToInt(state.whiteColor);
+    currentBlackPieceColor = hexToInt(state.blackColor);
+
+    refreshBoard3D(); // ✅ use game engine instead of placePieces
   }
 
   // Panel wrapper
+    var wrapper = document.createElement("div");
+  wrapper.style.cssText = `
+    position:absolute;
+    top:10px;
+    left:0;
+    z-index:10;
+  `;
+
+  var tab = document.createElement("div");
+  tab.textContent = "☰ Settings";
+  tab.style.cssText = `
+    background:#222;
+    color:#fff;
+    padding:8px 12px;
+    cursor:pointer;
+    border-radius:0 6px 6px 0;
+    font-family:sans-serif;
+  `;
+
   var panel = document.createElement("div");
-  panel.style.cssText = [
-    "position:absolute",
-    "top:10px",
-    "left:10px",
-    "background:rgba(0,0,0,0.72)",
-    "color:#fff",
-    "padding:10px 14px",
-    "font:13px sans-serif",
-    "border-radius:6px",
-    "line-height:2.0",
-    "z-index:10",
-  ].join(";");
+  panel.style.cssText = `
+    position:absolute;
+    top:0;
+    left:-220px;
+    width:200px;
+    background:rgba(0,0,0,0.85);
+    color:#fff;
+    padding:10px;
+    border-radius:0 6px 6px 0;
+    transition:left 0.3s ease;
+    font:13px sans-serif;
+  `;
+
+  var open = false;
+  tab.onclick = function () {
+    open = !open;
+    panel.style.left = open ? "0px" : "-220px";
+  };
+
+  wrapper.appendChild(panel);
+  wrapper.appendChild(tab);
 
   function makeRow(label, el) {
     var wrap = document.createElement("div");
