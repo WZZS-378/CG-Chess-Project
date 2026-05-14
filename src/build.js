@@ -208,7 +208,8 @@ function addShapes() {
     }
 
     // Load all models
-    loadAllModels().then(function () {
-        if (typeof startGame === "function") startGame(); // To-Do: Implement startGame function
-    });
+    // loadAllModels().then(function () {
+    //     if (typeof startGame === "function") startGame(); // To-Do: Implement startGame function
+    // });
+    loadAllModels();
 }
