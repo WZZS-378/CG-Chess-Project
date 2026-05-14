@@ -69,6 +69,10 @@ function getClickedSquare(event) {
 
 // Click Handler
 function onBoardClick(event) {
+    if (window.gameMode === 'cpu' && gameState.turn === 'black') {
+        return;
+    }
+
     const square = getClickedSquare(event);
 
     if (square === null) {
