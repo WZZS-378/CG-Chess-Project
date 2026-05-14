@@ -99,6 +99,18 @@ var SKYBOX_CONFIG = {
             front: "skyboxes/tropic/tropic_ft.jpg",
             back: "skyboxes/tropic/tropic_bk.jpg"
         }
+    },
+    yonder: {
+        label: "Yonder",
+        type: "texture",
+        faces: {
+            right: "skyboxes/yonder/yonder_lf.jpg",
+            left: "skyboxes/yonder/yonder_rt.jpg",
+            top: "skyboxes/yonder/yonder_up.jpg",
+            bottom: "skyboxes/yonder/yonder_dn.jpg",
+            front: "skyboxes/yonder/yonder_ft.jpg",
+            back: "skyboxes/yonder/yonder_bk.jpg"
+        }
     }
 };
 
