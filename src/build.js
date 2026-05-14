@@ -126,6 +126,62 @@ function colorizeModel(object, color) {
     return cloned;
 }
 
+// Captured pieces displayed beside the board (tilted 90°). White pieces taken by Black sit on Black's side (+Z); Black pieces taken by White on White's side (−Z).
+let capturedPiecesGroup = null;
+
+const CAPTURE_SORT_ORDER = ['queen', 'rook', 'bishop', 'knight', 'pawn'];
+
+function sortCapturedForDisplay(arr) {
+    return arr.slice().sort(function (a, b) {
+        return CAPTURE_SORT_ORDER.indexOf(a.type) - CAPTURE_SORT_ORDER.indexOf(b.type);
+    });
+}
+
+function refreshCaptured3D(capturedWhite, capturedBlack, whiteHex, blackHex) {
+    if (capturedPiecesGroup) scene.remove(capturedPiecesGroup);
+    capturedPiecesGroup = new THREE.Group();
+
+    var scale = 0.1;
+    var spacing = 0.5;
+    var zBlackSide = 4.5;
+    var zWhiteSide = -4.5;
+    var baseY = -0.06;
+
+    var wList = sortCapturedForDisplay(capturedWhite || []);
+    var bList = sortCapturedForDisplay(capturedBlack || []);
+
+    // Square column 0 (a-file) sits at world X = 3.5; rows grow toward −X (h-file).
+    // Start each capture row at that left edge and step inward along the rank.
+    var leftStartX = 3.6;
+
+    var i;
+    for (i = 0; i < wList.length; i++) {
+        var pw = wList[i];
+        if (!modelCache[pw.type]) continue;
+        var mw = colorizeModel(modelCache[pw.type], whiteHex);
+        mw.scale.set(scale, scale, scale);
+        mw.position.set(leftStartX - i * spacing, baseY, zBlackSide);
+        capturedPiecesGroup.add(mw);
+    }
+
+    for (i = 0; i < bList.length; i++) {
+        var pb = bList[i];
+        if (!modelCache[pb.type]) continue;
+        var mb = colorizeModel(modelCache[pb.type], blackHex);
+        mb.scale.set(scale, scale, scale);
+        mb.position.set(leftStartX - i * spacing, baseY, zWhiteSide);
+        capturedPiecesGroup.add(mb);
+    }
+
+    scene.add(capturedPiecesGroup);
+
+    if (capturedPiecesGroup) {
+        capturedPiecesGroup.traverse(function (child) {
+            if (child.isMesh) child.raycast = function () {};
+        });
+    }
+}
+
 // Loads all six piece types into modelCache.
 // Called once on startup; subsequent calls return immediately from the cache.
 async function loadAllModels() {
