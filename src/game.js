@@ -9,9 +9,33 @@ window.aiDifficulty = window.aiDifficulty || 'medium';
 // Game State
 let gameState = createInitialState();
 
+// AI Web Worker (engine + minimax run off the main thread)
+let aiWorker = null;
+let cpuSearchId = 0;
+
+function getAiWorker() {
+    if (!aiWorker) {
+        aiWorker = new Worker('src/chess-ai.worker.js');
+        aiWorker.onerror = function (err) {
+            console.error('AI worker error:', err);
+        };
+    }
+    return aiWorker;
+}
+
+function terminateAiWorker() {
+    if (aiWorker) {
+        aiWorker.terminate();
+        aiWorker = null;
+    }
+}
+
+function cloneStateForWorker(state) {
+    return JSON.parse(JSON.stringify(state));
+}
+
 // 3D Sync
 // Rebuilds the piece group from scratch to match the current engine state.
-// Called after every move and after colour changes from the controls panel.
 function refreshBoard3D() {
     if (piecesGroup) scene.remove(piecesGroup);
     piecesGroup = new THREE.Group();
@@ -34,12 +58,33 @@ function refreshBoard3D() {
     }
 
     scene.add(piecesGroup);
-    // Make pieces click-through so raycasts always reach the square beneath.
     if (typeof disablePieceRaycast === 'function') disablePieceRaycast();
+
+    if (typeof controls !== 'undefined' && controls && controls.update) controls.update();
+    if (typeof renderer !== 'undefined' && renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+let isCpuThinking = false;
+
+function setCpuThinking(on) {
+    isCpuThinking = !!on;
+    const el = document.getElementById('status');
+    if (!el) return;
+    if (on) {
+        el.textContent = 'CPU is thinking\u2026';
+    } else {
+        updateStatusDisplay(getGameStatus(gameState));
+    }
 }
 
 // Game Flow
 function startGame() {
+    terminateAiWorker();
+    cpuSearchId++;
+    isCpuThinking = false;
+
     gameState = createInitialState();
     refreshBoard3D();
     updateStatusDisplay();
@@ -47,33 +92,77 @@ function startGame() {
     renderer.domElement.addEventListener('click', onBoardClick);
 }
 
-// Called by interaction.js after every move is applied.
-function onMoveComplete() {
-    var status = getGameStatus(gameState);
-    updateStatusDisplay(status);
-    if (status !== 'playing') {
-        renderer.domElement.removeEventListener('click', onBoardClick);
+function executeCpuMove() {
+    if (window.gameMode !== 'cpu' || gameState.turn !== 'black') {
+        setCpuThinking(false);
         return;
     }
 
-    if (window.gameMode === 'cpu' && gameState.turn === 'black') {
-        var aiMove = getAIMove(gameState, window.aiDifficulty);
+    const searchId = ++cpuSearchId;
+
+    const worker = getAiWorker();
+    const payload = {
+        type: 'search',
+        searchId: searchId,
+        state: cloneStateForWorker(gameState),
+        difficulty: window.aiDifficulty,
+    };
+
+    function onMessage(e) {
+        if (!e.data || e.data.searchId !== searchId) return;
+
+        setCpuThinking(false);
+
+        if (window.gameMode !== 'cpu' || gameState.turn !== 'black') return;
+
+        if (e.data.error) {
+            console.error('AI search failed:', e.data.error);
+            updateStatusDisplay(getGameStatus(gameState));
+            return;
+        }
+
+        const aiMove = e.data.move;
         if (aiMove) {
             gameState = applyMove(gameState, aiMove);
             refreshBoard3D();
         }
-        status = getGameStatus(gameState);
+        const status = getGameStatus(gameState);
         updateStatusDisplay(status);
         if (status !== 'playing') {
             renderer.domElement.removeEventListener('click', onBoardClick);
         }
     }
+
+    worker.addEventListener('message', onMessage, { once: true });
+    worker.postMessage(payload);
+}
+
+// Called by interaction.js after every move is applied.
+function onMoveComplete() {
+    const status = getGameStatus(gameState);
+    if (status !== 'playing') {
+        setCpuThinking(false);
+        updateStatusDisplay(status);
+        renderer.domElement.removeEventListener('click', onBoardClick);
+        return;
+    }
+
+    if (window.gameMode === 'cpu' && gameState.turn === 'black') {
+        setCpuThinking(true);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(executeCpuMove);
+        });
+        return;
+    }
+
+    updateStatusDisplay(status);
 }
 
 // Status Display
 function updateStatusDisplay(status) {
     const el = document.getElementById('status');
     if (!el) return;
+    if (isCpuThinking) return;
 
     if (!status || status === 'playing') {
         const checked = isInCheck(gameState.board, gameState.turn);
