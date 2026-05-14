@@ -93,6 +93,8 @@ function refreshBoard3D() {
     }
 
     scene.add(piecesGroup);
+    
+    // Ensure all necessary functions are defined before calling them
     if (typeof disablePieceRaycast === 'function') disablePieceRaycast();
 
     if (typeof controls !== 'undefined' && controls && controls.update) controls.update();
@@ -107,15 +109,42 @@ function refreshBoard3D() {
 
 let isCpuThinking = false;
 
+function setStatusBarTheme(theme) {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.classList.remove('status-bar--white-turn', 'status-bar--black-turn', 'status-bar--neutral');
+    if (theme === 'white') bar.classList.add('status-bar--white-turn');
+    else if (theme === 'black') bar.classList.add('status-bar--black-turn');
+    else bar.classList.add('status-bar--neutral');
+}
+
 function setCpuThinking(on) {
     isCpuThinking = !!on;
     const el = document.getElementById('status');
     if (!el) return;
     if (on) {
         el.textContent = 'CPU is thinking\u2026';
+        setStatusBarTheme('black');
     } else {
         updateStatusDisplay(getGameStatus(gameState));
     }
+}
+
+function showStatusBar() {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.setAttribute('aria-hidden', 'false');
+    bar.classList.remove('status-bar--hidden');
+    bar.classList.add('status-bar--visible');
+}
+
+function hideStatusBar() {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.setAttribute('aria-hidden', 'true');
+    bar.classList.add('status-bar--hidden');
+    bar.classList.remove('status-bar--visible');
+    bar.classList.remove('status-bar--white-turn', 'status-bar--black-turn', 'status-bar--neutral');
 }
 
 // Game Flow
@@ -128,6 +157,7 @@ function startGame() {
     resetCapturedLists();
     createChessBoard(currentWhitePieceColor, currentBlackPieceColor, 0xBB4513);
     refreshBoard3D();
+    showStatusBar();
     updateStatusDisplay();
     renderer.domElement.removeEventListener('click', onBoardClick);
     renderer.domElement.addEventListener('click', onBoardClick);
@@ -209,13 +239,17 @@ function updateStatusDisplay(status) {
         el.textContent = checked
             ? cap(gameState.turn) + ' to move \u2014 Check!'
             : cap(gameState.turn) + ' to move';
+        setStatusBarTheme(gameState.turn === 'white' ? 'white' : 'black');
     } else if (status === 'checkmate') {
         const winner = gameState.turn === 'white' ? 'Black' : 'White';
         el.textContent = 'Checkmate \u2014 ' + winner + ' wins!';
+        setStatusBarTheme(gameState.turn === 'white' ? 'black' : 'white');
     } else if (status === 'stalemate') {
         el.textContent = 'Stalemate \u2014 Draw!';
+        setStatusBarTheme('neutral');
     } else if (status === 'draw-50move') {
         el.textContent = 'Draw by the 50-move rule.';
+        setStatusBarTheme('neutral');
     }
 }
 
@@ -224,6 +258,8 @@ function cap(str) {
 }
 
 function showMainMenu() {
+    hideStatusBar();
+
     const menu = document.createElement("div");
     menu.style.position = "absolute";
     menu.style.top = "50%";

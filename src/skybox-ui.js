@@ -30,13 +30,25 @@
     "line-height:1.8",
     "z-index:10",
     "border:1px solid rgba(255,255,255,0.1)",
+    "min-width:160px",
   ].join(";");
 
   function makeRow(label, el) {
     var wrap = document.createElement("div");
+    wrap.style.cssText = [
+      "display:flex",
+      "align-items:center",
+      "justify-content:space-between",
+      "gap:12px",
+      "width:100%",
+      "box-sizing:border-box",
+      "margin-bottom:6px",
+    ].join(";");
     var lbl = document.createElement("span");
-    lbl.textContent = label + "\u00a0";
+    lbl.textContent = label.replace(/\u00a0/g, "").trim();
+    lbl.style.cssText = "flex:0 1 auto";
     wrap.appendChild(lbl);
+    el.style.flexShrink = "0";
     wrap.appendChild(el);
     return wrap;
   }
