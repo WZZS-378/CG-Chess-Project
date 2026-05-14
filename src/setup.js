@@ -52,18 +52,6 @@ var SKYBOX_CONFIG = {
             back: "skyboxes/night_sky/skybox_back.png"
         }
     },
-    teal1: { 
-        label: "Teal Nebula", 
-        type: "texture",
-        faces: {
-            right: "skyboxes/teal1/0002.jpg",
-            left: "skyboxes/teal1/0001.jpg",
-            top: "skyboxes/teal1/0006.jpg",
-            bottom: "skyboxes/teal1/0005.jpg",
-            front: "skyboxes/teal1/0003.jpg",
-            back: "skyboxes/teal1/0004.jpg"
-        }
-    },
     mystic: {
         label: "Mystic",
         type: "texture",
