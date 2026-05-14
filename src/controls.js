@@ -100,10 +100,64 @@ console.log("controls.js loaded");
   });
   
   var boardContainer = document.createElement("div");
-  boardContainer.style.cssText = "margin-bottom:0px";
+  boardContainer.style.cssText = "margin-bottom:10px";
   boardContainer.appendChild(boardLabel);
   boardContainer.appendChild(boardInput);
   panel.appendChild(boardContainer);
+
+  // Game mode — local (both colours human) vs CPU (human White only)
+  var modeLabel = document.createElement("label");
+  modeLabel.textContent = "Play mode: ";
+  modeLabel.style.cssText = "display:inline-block;width:120px";
+
+  var modeSelect = document.createElement("select");
+  modeSelect.style.cssText =
+    "margin-left:5px;padding:4px 8px;border-radius:3px;border:1px solid #999;font-size:13px";
+  [["local", "Local (both sides)"], ["cpu", "vs CPU (you are White)"]].forEach(function (opt) {
+    var o = document.createElement("option");
+    o.value = opt[0];
+    o.textContent = opt[1];
+    modeSelect.appendChild(o);
+  });
+  modeSelect.value = window.gameMode || "local";
+  modeSelect.addEventListener("change", function () {
+    window.gameMode = modeSelect.value;
+    if (typeof startGame === "function") startGame();
+  });
+
+  var modeContainer = document.createElement("div");
+  modeContainer.style.cssText = "margin-bottom:10px";
+  modeContainer.appendChild(modeLabel);
+  modeContainer.appendChild(modeSelect);
+  panel.appendChild(modeContainer);
+
+  // AI difficulty (only used when mode is CPU)
+  var diffLabel = document.createElement("label");
+  diffLabel.textContent = "CPU strength: ";
+  diffLabel.style.cssText = "display:inline-block;width:120px";
+
+  var diffSelect = document.createElement("select");
+  diffSelect.style.cssText =
+    "margin-left:5px;padding:4px 8px;border-radius:3px;border:1px solid #999;font-size:13px";
+  [["easy", "Easy (random)"], ["medium", "Medium (depth 2)"], ["hard", "Hard (depth 3)"]].forEach(
+    function (opt) {
+      var o = document.createElement("option");
+      o.value = opt[0];
+      o.textContent = opt[1];
+      diffSelect.appendChild(o);
+    }
+  );
+  diffSelect.value = window.aiDifficulty || "medium";
+  diffSelect.addEventListener("change", function () {
+    window.aiDifficulty = diffSelect.value;
+    if (window.gameMode === "cpu" && typeof startGame === "function") startGame();
+  });
+
+  var diffContainer = document.createElement("div");
+  diffContainer.style.cssText = "margin-bottom:0px";
+  diffContainer.appendChild(diffLabel);
+  diffContainer.appendChild(diffSelect);
+  panel.appendChild(diffContainer);
 
   // ── Mount panel ────────────────────────────────────────────────────────────
   (document.getElementById("menu") || document.body).appendChild(panel);

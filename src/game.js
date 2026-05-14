@@ -2,6 +2,10 @@
 let currentWhitePieceColor = 0xfaf0dc;
 let currentBlackPieceColor = 0x222222;
 
+// Game mode — 'local' or 'cpu' (human always White vs Black AI).
+window.gameMode = window.gameMode || 'local';
+window.aiDifficulty = window.aiDifficulty || 'medium';
+
 // Game State
 let gameState = createInitialState();
 
@@ -39,16 +43,30 @@ function startGame() {
     gameState = createInitialState();
     refreshBoard3D();
     updateStatusDisplay();
+    renderer.domElement.removeEventListener('click', onBoardClick);
     renderer.domElement.addEventListener('click', onBoardClick);
 }
 
 // Called by interaction.js after every move is applied.
 function onMoveComplete() {
-    const status = getGameStatus(gameState);
+    var status = getGameStatus(gameState);
     updateStatusDisplay(status);
     if (status !== 'playing') {
-        // Remove click listener so the board is no longer interactive.
         renderer.domElement.removeEventListener('click', onBoardClick);
+        return;
+    }
+
+    if (window.gameMode === 'cpu' && gameState.turn === 'black') {
+        var aiMove = getAIMove(gameState, window.aiDifficulty);
+        if (aiMove) {
+            gameState = applyMove(gameState, aiMove);
+            refreshBoard3D();
+        }
+        status = getGameStatus(gameState);
+        updateStatusDisplay(status);
+        if (status !== 'playing') {
+            renderer.domElement.removeEventListener('click', onBoardClick);
+        }
     }
 }
 
