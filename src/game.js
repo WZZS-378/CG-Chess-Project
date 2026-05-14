@@ -9,6 +9,41 @@ window.aiDifficulty = window.aiDifficulty || 'medium';
 // Game State
 let gameState = createInitialState();
 
+// Captured pieces (for display): white pieces removed from the board, black pieces removed.
+let capturedWhiteList = [];
+let capturedBlackList = [];
+
+function pieceTakenByMove(state, move) {
+    var mover = state.board[move.from];
+    if (!mover) return null;
+    var victim = state.board[move.to];
+    if (victim && victim.color !== mover.color) {
+        return { type: victim.type, color: victim.color };
+    }
+    if (mover.type === 'pawn' && move.to === state.enPassantSquare) {
+        var dir = mover.color === 'white' ? 1 : -1;
+        var capIdx = move.to - dir * 8;
+        var ep = state.board[capIdx];
+        if (ep) return { type: ep.type, color: ep.color };
+    }
+    return null;
+}
+
+function applyGameMove(move) {
+    var taken = pieceTakenByMove(gameState, move);
+    gameState = applyMove(gameState, move);
+    if (taken) {
+        if (taken.color === 'white') capturedWhiteList.push({ type: taken.type });
+        else capturedBlackList.push({ type: taken.type });
+    }
+    refreshBoard3D();
+}
+
+function resetCapturedLists() {
+    capturedWhiteList = [];
+    capturedBlackList = [];
+}
+
 // AI Web Worker (engine + minimax run off the main thread)
 let aiWorker = null;
 let cpuSearchId = 0;
@@ -64,6 +99,10 @@ function refreshBoard3D() {
     if (typeof renderer !== 'undefined' && renderer && scene && camera) {
         renderer.render(scene, camera);
     }
+
+    if (typeof refreshCaptured3D === 'function') {
+        refreshCaptured3D(capturedWhiteList, capturedBlackList, currentWhitePieceColor, currentBlackPieceColor);
+    }
 }
 
 let isCpuThinking = false;
@@ -86,6 +125,7 @@ function startGame() {
     isCpuThinking = false;
 
     gameState = createInitialState();
+    resetCapturedLists();
     createChessBoard(currentWhitePieceColor, currentBlackPieceColor, 0xBB4513);
     refreshBoard3D();
     updateStatusDisplay();
@@ -124,8 +164,7 @@ function executeCpuMove() {
 
         const aiMove = e.data.move;
         if (aiMove) {
-            gameState = applyMove(gameState, aiMove);
-            refreshBoard3D();
+            applyGameMove(aiMove);
         }
         const status = getGameStatus(gameState);
         updateStatusDisplay(status);
