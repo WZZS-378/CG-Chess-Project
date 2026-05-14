@@ -36,7 +36,7 @@ function setScene() {
     controls.minDistance = 5; 
     controls.maxDistance = 50;
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    controls.dampingFactor = 1;
     controls.enablePan = false;
 }
 
