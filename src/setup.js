@@ -7,23 +7,6 @@ var skyboxMesh = null;
 var textureLoader = new THREE.TextureLoader();
 var currentBackgroundColor = 0x5bb1cd;
 
-// HOW TO ADD NEW SKYBOXES:
-// 1. Create a new folder in skyboxes/ with your texture files (e.g., skyboxes/my_skybox/)
-// 2. Add an entry to SKYBOX_CONFIG below with this structure:
-//    mysky: {
-//      label: "Display Name",
-//      type: "texture",
-//      faces: {
-//        right: "path/to/right.jpg",
-//        left: "path/to/left.jpg",
-//        top: "path/to/top.jpg",
-//        bottom: "path/to/bottom.jpg",
-//        front: "path/to/front.jpg",
-//        back: "path/to/back.jpg"
-//      }
-//    }
-// 3. The skybox will automatically appear in the UI dropdown
-
 // Skybox configuration - defines available skyboxes
 // Face order: right, left, top, bottom, front, back (matches BoxGeometry material order)
 var SKYBOX_CONFIG = {
