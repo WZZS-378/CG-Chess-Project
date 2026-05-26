@@ -4,83 +4,155 @@
 
 (function () {
   function init() {
-    // Wait until controls.js panel and pieces.js globals are ready
-    var menu = document.getElementById("menu");
-    if (
-      !menu ||
-      !menu.firstChild ||
-      typeof THEMES === "undefined" ||
-      typeof MATERIAL_PRESETS === "undefined"
-    ) {
-      setTimeout(init, 100);
-      return;
-    }
+  // Prevent duplicate init
+  if (document.getElementById("menu-root")) return;
 
-    var panel = menu.firstChild;
-
-    // ── Divider ───────────────────────────────────────────────
-    var hr = document.createElement("hr");
-    hr.style.cssText = "border:none;border-top:1px solid #bbb;margin:8px 0";
-    panel.appendChild(hr);
-
-    // ── Helper ────────────────────────────────────────────────
-    function makeRow(labelText, el) {
-      var row = document.createElement("div");
-      row.style.cssText = "margin-bottom:8px";
-      var lbl = document.createElement("label");
-      lbl.textContent = labelText;
-      lbl.style.cssText =
-        "display:inline-block;width:120px;font-size:13px;font-family:sans-serif";
-      row.appendChild(lbl);
-      row.appendChild(el);
-      return row;
-    }
-
-    function makeSelect(options, onChange) {
-      // options: array of { value, label }
-      var sel = document.createElement("select");
-      sel.style.cssText =
-        "padding:3px 6px;border-radius:3px;border:1px solid #999;font-size:13px";
-      options.forEach(function (o) {
-        var opt = document.createElement("option");
-        opt.value = o.value;
-        opt.textContent = o.label;
-        sel.appendChild(opt);
-      });
-      sel.addEventListener("change", function () {
-        onChange(sel.value);
-      });
-      return sel;
-    }
-
-    // ── Theme dropdown ────────────────────────────────────────
-    var themeOptions = Object.keys(THEMES).map(function (k) {
-      return { value: k, label: THEMES[k].label };
-    });
-    panel.appendChild(
-      makeRow(
-        "Theme:",
-        makeSelect(themeOptions, function (v) {
-          applyTheme(v);
-        }),
-      ),
-    );
-
-    // ── Material dropdown ─────────────────────────────────────
-    var matOptions = Object.keys(MATERIAL_PRESETS).map(function (k) {
-      return { value: k, label: MATERIAL_PRESETS[k].label };
-    });
-    panel.appendChild(
-      makeRow(
-        "Material:",
-        makeSelect(matOptions, function (v) {
-          applyMaterialPreset(v);
-        }),
-      ),
-    );
+  // Wait for dependencies
+  if (
+    typeof THEMES === "undefined" ||
+    typeof MATERIAL_PRESETS === "undefined"
+  ) {
+    setTimeout(init, 100);
+    return;
   }
 
-  init();
+  // ── Root container ─────────────────────────────
+  var root = document.createElement("div");
+  root.id = "menu-root";
+  root.style.cssText = `
+    position:absolute;
+    top:20px;
+    right:20px;
+    z-index:1000;
+  `;
+  document.body.appendChild(root);
+
+  // ── Panel ──────────────────────────────────────
+  var panel = document.createElement("div");
+  panel.id = "settings-panel";
+  panel.style.cssText = `
+    background:rgba(255, 255, 255, 0.95);
+    padding:12px;
+    border-radius:8px;
+    display:none;
+    min-width:200px;
+  `;
+  root.appendChild(panel);
+
+  // ── Toggle button ──────────────────────────────
+  var toggleBtn = document.createElement("button");
+  toggleBtn.innerText = "⚙ Settings";
+
+  toggleBtn.style.cssText = `
+    padding:10px 16px;
+    font-size:14px;
+    background:#333;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    margin-bottom:8px;
+  `;
+
+  root.appendChild(toggleBtn);
+
+  // ── Toggle logic ───────────────────────────────
+  var isOpen = false;
+
+  function togglePanel() {
+    isOpen = !isOpen;
+    panel.style.display = isOpen ? "block" : "none";
+
+    // Optional: disable board interaction
+    if (typeof renderer !== "undefined") {
+      renderer.domElement.style.pointerEvents = isOpen ? "none" : "auto";
+    }
+
+    if (typeof controls !== "undefined") {
+      controls.enabled = !isOpen;
+    }
+  }
+
+  toggleBtn.onclick = togglePanel;
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key.toLowerCase() === "u") {
+      togglePanel();
+    }
+  });
+
+  panel.addEventListener("click", e => e.stopPropagation());
+  toggleBtn.addEventListener("click", e => e.stopPropagation());
+
+  // ── Divider ───────────────────────────────────
+  var hr = document.createElement("hr");
+  hr.style.cssText = "border:none;border-top:1px solid #bbb;margin:8px 0";
+  panel.appendChild(hr);
+
+  // ── Helpers ───────────────────────────────────
+  function makeRow(labelText, el) {
+    var row = document.createElement("div");
+    row.style.cssText = "margin-bottom:8px";
+
+    var lbl = document.createElement("label");
+    lbl.textContent = labelText;
+    lbl.style.cssText =
+      "display:inline-block;width:120px;font-size:13px;font-family:sans-serif";
+
+    row.appendChild(lbl);
+    row.appendChild(el);
+    return row;
+  }
+
+  function makeSelect(options, onChange) {
+    var sel = document.createElement("select");
+    sel.style.cssText =
+      "padding:3px 6px;border-radius:3px;border:1px solid #999;font-size:13px";
+
+    options.forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+
+    sel.addEventListener("change", function () {
+      onChange(sel.value);
+    });
+
+    return sel;
+  }
+
+  // ── Theme dropdown ────────────────────────────
+  var themeOptions = Object.keys(THEMES).map(function (k) {
+    return { value: k, label: THEMES[k].label };
+  });
+
+  panel.appendChild(
+    makeRow(
+      "Theme:",
+      makeSelect(themeOptions, function (v) {
+        applyTheme(v);
+      }),
+    ),
+  );
+
+  // ── Material dropdown ─────────────────────────
+  var matOptions = Object.keys(MATERIAL_PRESETS).map(function (k) {
+    return { value: k, label: MATERIAL_PRESETS[k].label };
+  });
+
+  panel.appendChild(
+    makeRow(
+      "Material:",
+      makeSelect(matOptions, function (v) {
+        applyMaterialPreset(v);
+      }),
+    ),
+  );
+}
+
+  window.initSettingsUI = init;
 })();
 
 

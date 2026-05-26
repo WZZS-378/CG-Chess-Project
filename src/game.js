@@ -161,6 +161,9 @@ function startGame() {
     updateStatusDisplay();
     renderer.domElement.removeEventListener('click', onBoardClick);
     renderer.domElement.addEventListener('click', onBoardClick);
+    if (typeof initSettingsUI === "function") {
+        initSettingsUI();
+    }
 }
 
 function executeCpuMove() {
