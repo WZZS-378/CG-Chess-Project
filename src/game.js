@@ -257,6 +257,7 @@ function cap(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+//Game UI
 function showMainMenu() {
     hideStatusBar();
 
@@ -297,11 +298,7 @@ function showMainMenu() {
     //Start game
     startBtn.onclick = () => {
         document.body.removeChild(menu);
-
-        
-        addShapes();
-
-        startGame();
+        showModeSelection();
     };
 
     menu.appendChild(title);
@@ -403,4 +400,112 @@ function showEndScreen(resultText) {
     screen.appendChild(restart);
     screen.appendChild(menuBtn);
     document.body.appendChild(screen);
+}
+
+function showModeSelection() {
+    const screen = document.createElement("div");
+    screen.style = `
+        position:absolute;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        text-align:center;
+    `;
+
+    const title = document.createElement("h2");
+    title.innerText = "Select Game Mode";
+
+    const localBtn = document.createElement("button");
+    localBtn.innerText = "Play Locally";
+
+    const cpuBtn = document.createElement("button");
+    cpuBtn.innerText = "Play vs CPU";
+
+    styleMenuButton(localBtn);
+    styleMenuButton(cpuBtn);
+
+    // Local game
+    localBtn.onclick = () => {
+        window.gameMode = 'local';
+        document.body.removeChild(screen);
+
+        addShapes();
+        startGame();
+    };
+
+    // CPU game → go to difficulty select
+    cpuBtn.onclick = () => {
+        document.body.removeChild(screen);
+        showDifficultySelection();
+    };
+
+    screen.appendChild(title);
+    screen.appendChild(localBtn);
+    screen.appendChild(cpuBtn);
+    document.body.appendChild(screen);
+}
+
+function showDifficultySelection() {
+    const screen = document.createElement("div");
+    screen.style = `
+        position:absolute;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        text-align:center;
+    `;
+
+    const title = document.createElement("h2");
+    title.innerText = "Select CPU Difficulty";
+
+    const easy = document.createElement("button");
+    const medium = document.createElement("button");
+    const hard = document.createElement("button");
+
+    easy.innerText = "Easy";
+    medium.innerText = "Medium";
+    hard.innerText = "Hard";
+
+    [easy, medium, hard].forEach(styleMenuButton);
+
+    easy.onclick = () => startCpuGame('easy', screen);
+    medium.onclick = () => startCpuGame('medium', screen);
+    hard.onclick = () => startCpuGame('hard', screen);
+
+    screen.appendChild(title);
+    screen.appendChild(easy);
+    screen.appendChild(medium);
+    screen.appendChild(hard);
+    document.body.appendChild(screen);
+}
+
+function startCpuGame(difficulty, screen) {
+    window.gameMode = 'cpu';
+    window.aiDifficulty = difficulty;
+
+    document.body.removeChild(screen);
+
+    addShapes();
+    startGame();
+}
+
+function styleMenuButton(btn) {
+    btn.style.cssText = `
+        display:block;
+        padding:16px 40px;
+        font-size:20px;
+        font-weight:bold;
+        margin:10px auto;
+        background:#4CAF50;
+        color:white;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        transition:transform 0.1s ease, background 0.2s;
+    `;
+
+    btn.onmouseenter = () => btn.style.background = "#45a049";
+    btn.onmouseleave = () => btn.style.background = "#4CAF50";
+    btn.onmousedown = () => btn.style.transform = "scale(0.95)";
+    btn.onmouseup = () => btn.style.transform = "scale(1)";
 }
