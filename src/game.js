@@ -294,7 +294,7 @@ function showMainMenu() {
     startBtn.onmousedown = () => startBtn.style.transform = "scale(0.95)";
     startBtn.onmouseup = () => startBtn.style.transform = "scale(1)";
 
-    // ▶️ Start game
+    //Start game
     startBtn.onclick = () => {
         document.body.removeChild(menu);
 
@@ -372,20 +372,20 @@ function showEndScreen(resultText) {
         transition:transform 0.1s ease, background 0.2s;
     `;
 
-    // Shared click animation
+    //Shared click animation
     [restart, menuBtn].forEach(btn => {
         btn.onmousedown = () => btn.style.transform = "scale(0.95)";
         btn.onmouseup = () => btn.style.transform = "scale(1)";
     });
 
-    // ✨ Hover effects
+    // over effects
     restart.onmouseenter = () => restart.style.background = "#1976D2";
     restart.onmouseleave = () => restart.style.background = "#2196F3";
 
     menuBtn.onmouseenter = () => menuBtn.style.background = "#d32f2f";
     menuBtn.onmouseleave = () => menuBtn.style.background = "#f44336";
 
-    // 🔄 Restart game
+    //Restart game
     restart.onclick = () => {
         document.body.removeChild(screen);
 
@@ -393,7 +393,7 @@ function showEndScreen(resultText) {
         startGame();   // restart logic
     };
 
-    // 🏠 Back to menu
+    //Back to menu
     menuBtn.onclick = () => {
         document.body.removeChild(screen);
         showMainMenu();
