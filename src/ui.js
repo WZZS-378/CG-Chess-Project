@@ -1,122 +1,84 @@
-// ui.js
-// Plain controls panel. No fancy CSS.
-// Must load AFTER pieces.js (needs PIECE_STYLES, MATERIAL_PRESETS, placePieces).
+// ui.js — Piece theme + material controls
+// Appends rows to the panel controls.js already built inside #menu.
+// Calls applyTheme() and applyMaterialPreset() from pieces.js.
 
 (function () {
-  var state = {
-    pieceStyle: "classic",
-    material: "flat",
-    whiteColor: "#faf0dc",
-    blackColor: "#222222",
-  };
+  function init() {
+    // Wait until controls.js panel and pieces.js globals are ready
+    var menu = document.getElementById("menu");
+    if (
+      !menu ||
+      !menu.firstChild ||
+      typeof THEMES === "undefined" ||
+      typeof MATERIAL_PRESETS === "undefined"
+    ) {
+      setTimeout(init, 100);
+      return;
+    }
 
-  function hexToInt(h) {
-    return parseInt(h.replace("#", ""), 16);
-  }
+    var panel = menu.firstChild;
 
-  function push() {
-    placePieces({
-      pieceStyle: state.pieceStyle,
-      material: state.material,
-      whiteColor: hexToInt(state.whiteColor),
-      blackColor: hexToInt(state.blackColor),
+    // ── Divider ───────────────────────────────────────────────
+    var hr = document.createElement("hr");
+    hr.style.cssText = "border:none;border-top:1px solid #bbb;margin:8px 0";
+    panel.appendChild(hr);
+
+    // ── Helper ────────────────────────────────────────────────
+    function makeRow(labelText, el) {
+      var row = document.createElement("div");
+      row.style.cssText = "margin-bottom:8px";
+      var lbl = document.createElement("label");
+      lbl.textContent = labelText;
+      lbl.style.cssText =
+        "display:inline-block;width:120px;font-size:13px;font-family:sans-serif";
+      row.appendChild(lbl);
+      row.appendChild(el);
+      return row;
+    }
+
+    function makeSelect(options, onChange) {
+      // options: array of { value, label }
+      var sel = document.createElement("select");
+      sel.style.cssText =
+        "padding:3px 6px;border-radius:3px;border:1px solid #999;font-size:13px";
+      options.forEach(function (o) {
+        var opt = document.createElement("option");
+        opt.value = o.value;
+        opt.textContent = o.label;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener("change", function () {
+        onChange(sel.value);
+      });
+      return sel;
+    }
+
+    // ── Theme dropdown ────────────────────────────────────────
+    var themeOptions = Object.keys(THEMES).map(function (k) {
+      return { value: k, label: THEMES[k].label };
     });
-  }
+    panel.appendChild(
+      makeRow(
+        "Theme:",
+        makeSelect(themeOptions, function (v) {
+          applyTheme(v);
+        }),
+      ),
+    );
 
-  // Panel wrapper
-  var panel = document.createElement("div");
-  panel.style.cssText = [
-    "position:absolute",
-    "top:10px",
-    "left:10px",
-    "background:rgba(0,0,0,0.72)",
-    "color:#fff",
-    "padding:10px 14px",
-    "font:13px sans-serif",
-    "border-radius:6px",
-    "line-height:2.0",
-    "z-index:10",
-  ].join(";");
-
-  function makeRow(label, el) {
-    var wrap = document.createElement("div");
-    var lbl = document.createElement("span");
-    lbl.textContent = label + "\u00a0";
-    wrap.appendChild(lbl);
-    wrap.appendChild(el);
-    return wrap;
-  }
-
-  function makeSelect(optionsObj, current, onChange) {
-    var sel = document.createElement("select");
-    sel.style.cssText =
-      "background:#333;color:#fff;border:1px solid #666;padding:2px 4px;border-radius:3px";
-    Object.keys(optionsObj).forEach(function (k) {
-      var opt = document.createElement("option");
-      opt.value = k;
-      opt.textContent = optionsObj[k];
-      if (k === current) opt.selected = true;
-      sel.appendChild(opt);
+    // ── Material dropdown ─────────────────────────────────────
+    var matOptions = Object.keys(MATERIAL_PRESETS).map(function (k) {
+      return { value: k, label: MATERIAL_PRESETS[k].label };
     });
-    sel.addEventListener("change", function () {
-      onChange(sel.value);
-      push();
-    });
-    return sel;
+    panel.appendChild(
+      makeRow(
+        "Material:",
+        makeSelect(matOptions, function (v) {
+          applyMaterialPreset(v);
+        }),
+      ),
+    );
   }
 
-  function makeColor(value, key) {
-    var inp = document.createElement("input");
-    inp.type = "color";
-    inp.value = value;
-    inp.style.cssText =
-      "width:38px;height:22px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle";
-    inp.addEventListener("input", function () {
-      state[key] = inp.value;
-      push();
-    });
-    return inp;
-  }
-
-  // Style dropdown — built from PIECE_STYLES
-  var styleOptions = {};
-  Object.keys(PIECE_STYLES).forEach(function (k) {
-    styleOptions[k] = PIECE_STYLES[k].label;
-  });
-  panel.appendChild(
-    makeRow(
-      "Style:",
-      makeSelect(styleOptions, state.pieceStyle, function (v) {
-        state.pieceStyle = v;
-      }),
-    ),
-  );
-
-  // Material dropdown — built from MATERIAL_PRESETS
-  var matOptions = {};
-  Object.keys(MATERIAL_PRESETS).forEach(function (k) {
-    matOptions[k] = MATERIAL_PRESETS[k].label;
-  });
-  panel.appendChild(
-    makeRow(
-      "Material:",
-      makeSelect(matOptions, state.material, function (v) {
-        state.material = v;
-      }),
-    ),
-  );
-
-  // Color pickers
-  panel.appendChild(
-    makeRow("White:", makeColor(state.whiteColor, "whiteColor")),
-  );
-  panel.appendChild(
-    makeRow("Black:", makeColor(state.blackColor, "blackColor")),
-  );
-
-  // Mount
-  (document.getElementById("menu") || document.body).appendChild(panel);
-
-  // Initial placement
-  push();
+  init();
 })();

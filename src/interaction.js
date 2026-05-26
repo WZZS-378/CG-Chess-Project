@@ -93,10 +93,9 @@ function onBoardClick(event) {
 
         if (legal.includes(square)) {
             // Valid destination — execute the move
-            gameState = applyMove(gameState, { from: selectedSquare, to: square });
+            applyGameMove({ from: selectedSquare, to: square });
             clearHighlights();
             selectedSquare = null;
-            refreshBoard3D();
             onMoveComplete();
         } else {
             // Try re-selecting a different friendly piece, or deselect
