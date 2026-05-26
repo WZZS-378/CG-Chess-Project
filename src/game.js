@@ -2,12 +2,75 @@
 let currentWhitePieceColor = 0xfaf0dc;
 let currentBlackPieceColor = 0x222222;
 
+// Game mode — 'local' or 'cpu' (human always White vs Black AI).
+window.gameMode = window.gameMode || 'local';
+window.aiDifficulty = window.aiDifficulty || 'medium';
+
 // Game State
 let gameState = createInitialState();
 
+// Captured pieces (for display): white pieces removed from the board, black pieces removed.
+let capturedWhiteList = [];
+let capturedBlackList = [];
+
+function pieceTakenByMove(state, move) {
+    var mover = state.board[move.from];
+    if (!mover) return null;
+    var victim = state.board[move.to];
+    if (victim && victim.color !== mover.color) {
+        return { type: victim.type, color: victim.color };
+    }
+    if (mover.type === 'pawn' && move.to === state.enPassantSquare) {
+        var dir = mover.color === 'white' ? 1 : -1;
+        var capIdx = move.to - dir * 8;
+        var ep = state.board[capIdx];
+        if (ep) return { type: ep.type, color: ep.color };
+    }
+    return null;
+}
+
+function applyGameMove(move) {
+    var taken = pieceTakenByMove(gameState, move);
+    gameState = applyMove(gameState, move);
+    if (taken) {
+        if (taken.color === 'white') capturedWhiteList.push({ type: taken.type });
+        else capturedBlackList.push({ type: taken.type });
+    }
+    refreshBoard3D();
+}
+
+function resetCapturedLists() {
+    capturedWhiteList = [];
+    capturedBlackList = [];
+}
+
+// AI Web Worker (engine + minimax run off the main thread)
+let aiWorker = null;
+let cpuSearchId = 0;
+
+function getAiWorker() {
+    if (!aiWorker) {
+        aiWorker = new Worker('src/chess-ai.worker.js');
+        aiWorker.onerror = function (err) {
+            console.error('AI worker error:', err);
+        };
+    }
+    return aiWorker;
+}
+
+function terminateAiWorker() {
+    if (aiWorker) {
+        aiWorker.terminate();
+        aiWorker = null;
+    }
+}
+
+function cloneStateForWorker(state) {
+    return JSON.parse(JSON.stringify(state));
+}
+
 // 3D Sync
 // Rebuilds the piece group from scratch to match the current engine state.
-// Called after every move and after colour changes from the controls panel.
 function refreshBoard3D() {
     if (piecesGroup) scene.remove(piecesGroup);
     piecesGroup = new THREE.Group();
@@ -30,46 +93,163 @@ function refreshBoard3D() {
     }
 
     scene.add(piecesGroup);
-    // Make pieces click-through so raycasts always reach the square beneath.
+    
+    // Ensure all necessary functions are defined before calling them
     if (typeof disablePieceRaycast === 'function') disablePieceRaycast();
+
+    if (typeof controls !== 'undefined' && controls && controls.update) controls.update();
+    if (typeof renderer !== 'undefined' && renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+
+    if (typeof refreshCaptured3D === 'function') {
+        refreshCaptured3D(capturedWhiteList, capturedBlackList, currentWhitePieceColor, currentBlackPieceColor);
+    }
+}
+
+let isCpuThinking = false;
+
+function setStatusBarTheme(theme) {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.classList.remove('status-bar--white-turn', 'status-bar--black-turn', 'status-bar--neutral');
+    if (theme === 'white') bar.classList.add('status-bar--white-turn');
+    else if (theme === 'black') bar.classList.add('status-bar--black-turn');
+    else bar.classList.add('status-bar--neutral');
+}
+
+function setCpuThinking(on) {
+    isCpuThinking = !!on;
+    const el = document.getElementById('status');
+    if (!el) return;
+    if (on) {
+        el.textContent = 'CPU is thinking\u2026';
+        setStatusBarTheme('black');
+    } else {
+        updateStatusDisplay(getGameStatus(gameState));
+    }
+}
+
+function showStatusBar() {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.setAttribute('aria-hidden', 'false');
+    bar.classList.remove('status-bar--hidden');
+    bar.classList.add('status-bar--visible');
+}
+
+function hideStatusBar() {
+    const bar = document.getElementById('status-bar');
+    if (!bar) return;
+    bar.setAttribute('aria-hidden', 'true');
+    bar.classList.add('status-bar--hidden');
+    bar.classList.remove('status-bar--visible');
+    bar.classList.remove('status-bar--white-turn', 'status-bar--black-turn', 'status-bar--neutral');
 }
 
 // Game Flow
 function startGame() {
+    terminateAiWorker();
+    cpuSearchId++;
+    isCpuThinking = false;
+
     gameState = createInitialState();
+    resetCapturedLists();
     createChessBoard(currentWhitePieceColor, currentBlackPieceColor, 0xBB4513);
     refreshBoard3D();
+    showStatusBar();
     updateStatusDisplay();
+    renderer.domElement.removeEventListener('click', onBoardClick);
     renderer.domElement.addEventListener('click', onBoardClick);
+}
+
+function executeCpuMove() {
+    if (window.gameMode !== 'cpu' || gameState.turn !== 'black') {
+        setCpuThinking(false);
+        return;
+    }
+
+    const searchId = ++cpuSearchId;
+
+    const worker = getAiWorker();
+    const payload = {
+        type: 'search',
+        searchId: searchId,
+        state: cloneStateForWorker(gameState),
+        difficulty: window.aiDifficulty,
+    };
+
+    function onMessage(e) {
+        if (!e.data || e.data.searchId !== searchId) return;
+
+        setCpuThinking(false);
+
+        if (window.gameMode !== 'cpu' || gameState.turn !== 'black') return;
+
+        if (e.data.error) {
+            console.error('AI search failed:', e.data.error);
+            updateStatusDisplay(getGameStatus(gameState));
+            return;
+        }
+
+        const aiMove = e.data.move;
+        if (aiMove) {
+            applyGameMove(aiMove);
+        }
+        const status = getGameStatus(gameState);
+        updateStatusDisplay(status);
+        if (status !== 'playing') {
+            renderer.domElement.removeEventListener('click', onBoardClick);
+        }
+    }
+
+    worker.addEventListener('message', onMessage, { once: true });
+    worker.postMessage(payload);
 }
 
 // Called by interaction.js after every move is applied.
 function onMoveComplete() {
     const status = getGameStatus(gameState);
-    updateStatusDisplay(status);
     if (status !== 'playing') {
-    renderer.domElement.removeEventListener('click', onBoardClick);
-    showEndScreenFromStatus(status);
+        setCpuThinking(false);
+        updateStatusDisplay(status);
+        renderer.domElement.removeEventListener('click', onBoardClick);
+        showEndScreenFromStatus(status);;
     }
+
+    if (window.gameMode === 'cpu' && gameState.turn === 'black') {
+        setCpuThinking(true);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(executeCpuMove);
+        });
+        return;
+    }
+
+    updateStatusDisplay(status);
 }
 
 // Status Display
 function updateStatusDisplay(status) {
     const el = document.getElementById('status');
     if (!el) return;
+    if (isCpuThinking) return;
 
     if (!status || status === 'playing') {
         const checked = isInCheck(gameState.board, gameState.turn);
         el.textContent = checked
             ? cap(gameState.turn) + ' to move \u2014 Check!'
             : cap(gameState.turn) + ' to move';
+        setStatusBarTheme(gameState.turn === 'white' ? 'white' : 'black');
     } else if (status === 'checkmate') {
         const winner = gameState.turn === 'white' ? 'Black' : 'White';
         el.textContent = 'Checkmate \u2014 ' + winner + ' wins!';
+        setStatusBarTheme(gameState.turn === 'white' ? 'black' : 'white');
     } else if (status === 'stalemate') {
         el.textContent = 'Stalemate \u2014 Draw!';
+        setStatusBarTheme('neutral');
     } else if (status === 'draw-50move') {
         el.textContent = 'Draw by the 50-move rule.';
+        setStatusBarTheme('neutral');
     }
 }
 
@@ -78,6 +258,8 @@ function cap(str) {
 }
 
 function showMainMenu() {
+    hideStatusBar();
+
     const menu = document.createElement("div");
     menu.style.position = "absolute";
     menu.style.top = "50%";
@@ -112,7 +294,7 @@ function showMainMenu() {
     startBtn.onmousedown = () => startBtn.style.transform = "scale(0.95)";
     startBtn.onmouseup = () => startBtn.style.transform = "scale(1)";
 
-    // ▶️ Start game
+    //Start game
     startBtn.onclick = () => {
         document.body.removeChild(menu);
 
@@ -190,20 +372,20 @@ function showEndScreen(resultText) {
         transition:transform 0.1s ease, background 0.2s;
     `;
 
-    // Shared click animation
+    //Shared click animation
     [restart, menuBtn].forEach(btn => {
         btn.onmousedown = () => btn.style.transform = "scale(0.95)";
         btn.onmouseup = () => btn.style.transform = "scale(1)";
     });
 
-    // ✨ Hover effects
+    // over effects
     restart.onmouseenter = () => restart.style.background = "#1976D2";
     restart.onmouseleave = () => restart.style.background = "#2196F3";
 
     menuBtn.onmouseenter = () => menuBtn.style.background = "#d32f2f";
     menuBtn.onmouseleave = () => menuBtn.style.background = "#f44336";
 
-    // 🔄 Restart game
+    //Restart game
     restart.onclick = () => {
         document.body.removeChild(screen);
 
@@ -211,7 +393,7 @@ function showEndScreen(resultText) {
         startGame();   // restart logic
     };
 
-    // 🏠 Back to menu
+    //Back to menu
     menuBtn.onclick = () => {
         document.body.removeChild(screen);
         showMainMenu();
