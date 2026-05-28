@@ -206,10 +206,6 @@ function addShapes() {
         console.error("OBJLoader or MTLLoader not loaded");
         return;
     }
-
-    // Load all models
-    // loadAllModels().then(function () {
-    //     if (typeof startGame === "function") startGame(); // To-Do: Implement startGame function
-    // });
+    
     loadAllModels();
 }

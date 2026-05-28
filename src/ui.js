@@ -38,8 +38,13 @@
     min-width:200px;
   `;
   root.appendChild(panel);
+  
   if (typeof buildControlsUI === "function") {
     buildControlsUI(panel);
+  }
+
+  if (typeof buildEnvironmentUI === "function") {
+    buildEnvironmentUI(panel);
   }
 
   // ── Toggle button ──────────────────────────────
@@ -204,6 +209,10 @@ function showMainMenu() {
         showModeSelection();
     };
 
+    if (typeof initSettingsUI === "function") {
+        initSettingsUI();
+    }
+    
     menu.appendChild(title);
     menu.appendChild(startBtn);
     document.body.appendChild(menu);
