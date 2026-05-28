@@ -38,6 +38,9 @@
     min-width:200px;
   `;
   root.appendChild(panel);
+  if (typeof buildControlsUI === "function") {
+    buildControlsUI(panel);
+  }
 
   // ── Toggle button ──────────────────────────────
   var toggleBtn = document.createElement("button");

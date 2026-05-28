@@ -1,16 +1,17 @@
-// Must load AFTER build.js functions are available
-
 console.log("controls.js loaded");
 
-(function () {
-  // Wait for scene and functions to be available
+// This function will be called from ui.js and passed the main panel
+window.buildControlsUI = function (panel) {
+  // Wait until scene and functions are ready
   if (
     typeof scene === "undefined" ||
     typeof createChessBoard === "undefined" ||
     typeof refreshBoard3D === "undefined"
   ) {
     console.warn("Waiting for scene and required functions...");
-    setTimeout(arguments.callee, 100);
+    setTimeout(function () {
+      window.buildControlsUI(panel);
+    }, 100);
     return;
   }
 
@@ -33,132 +34,141 @@ console.log("controls.js loaded");
 
     currentWhitePieceColor = whitePieceHex;
     currentBlackPieceColor = blackPieceHex;
+
     refreshBoard3D();
-    if (typeof resetBoardInteraction === "function") resetBoardInteraction();
+
+    if (typeof resetBoardInteraction === "function") {
+      resetBoardInteraction();
+    }
   }
 
-  // ── Panel container ───────────────────────────────────────────────────────
-  var panel = document.createElement("div");
-  panel.style.cssText =
-    "background:#eee;padding:12px 14px;border:1px solid #999;font-size:13px;font-family:sans-serif;line-height:2.5;border-radius:6px";
+  // ── Helper (same style as ui.js) ─────────────────────────────
+  function makeRow(labelText, el) {
+    var row = document.createElement("div");
+    row.style.cssText = "margin-bottom:8px";
 
-  // ── White color ───────────────────────────────────────────────────────────
-  var whiteLabel = document.createElement("label");
-  whiteLabel.textContent = "White Pieces: ";
-  whiteLabel.style.cssText = "display:inline-block;width:120px";
+    var lbl = document.createElement("label");
+    lbl.textContent = labelText;
+    lbl.style.cssText =
+      "display:inline-block;width:120px;font-size:13px;font-family:sans-serif";
 
-  var whiteInput = document.createElement("input");
-  whiteInput.type = "color";
-  whiteInput.value = state.whiteColor;
-  whiteInput.style.cssText =
-    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
-  whiteInput.addEventListener("input", function () {
-    state.whiteColor = whiteInput.value;
-    updateScene();
-  });
-  
-  var whiteContainer = document.createElement("div");
-  whiteContainer.style.cssText = "margin-bottom:10px";
-  whiteContainer.appendChild(whiteLabel);
-  whiteContainer.appendChild(whiteInput);
-  panel.appendChild(whiteContainer);
+    row.appendChild(lbl);
+    row.appendChild(el);
+    return row;
+  }
 
-  // ── Black color (controls both pieces AND board squares) ──────────────────
-  var blackLabel = document.createElement("label");
-  blackLabel.textContent = "Black Pieces & Squares: ";
-  blackLabel.style.cssText = "display:inline-block;width:120px";
+  function makeColorInput(value, onChange) {
+    var input = document.createElement("input");
+    input.type = "color";
+    input.value = value;
+    input.style.cssText =
+      "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer";
 
-  var blackInput = document.createElement("input");
-  blackInput.type = "color";
-  blackInput.value = state.blackColor;
-  blackInput.style.cssText =
-    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
-  blackInput.addEventListener("input", function () {
-    state.blackColor = blackInput.value;
-    updateScene();
-  });
-  
-  var blackContainer = document.createElement("div");
-  blackContainer.style.cssText = "margin-bottom:10px";
-  blackContainer.appendChild(blackLabel);
-  blackContainer.appendChild(blackInput);
-  panel.appendChild(blackContainer);
+    input.addEventListener("input", function () {
+      onChange(input.value);
+    });
 
-  // ── Board color ───────────────────────────────────────────────────────────
-  var boardLabel = document.createElement("label");
-  boardLabel.textContent = "Board Color: ";
-  boardLabel.style.cssText = "display:inline-block;width:120px";
+    return input;
+  }
 
-  var boardInput = document.createElement("input");
-  boardInput.type = "color";
-  boardInput.value = state.boardColor;
-  boardInput.style.cssText =
-    "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer;vertical-align:middle;margin-left:5px";
-  boardInput.addEventListener("input", function () {
-    state.boardColor = boardInput.value;
-    updateScene();
-  });
-  
-  var boardContainer = document.createElement("div");
-  boardContainer.style.cssText = "margin-bottom:10px";
-  boardContainer.appendChild(boardLabel);
-  boardContainer.appendChild(boardInput);
-  panel.appendChild(boardContainer);
+  function makeSelect(options, onChange) {
+    var sel = document.createElement("select");
+    sel.style.cssText =
+      "padding:3px 6px;border-radius:3px;border:1px solid #999;font-size:13px";
 
-  // Game mode — local (both colours human) vs CPU (human White only)
-  var modeLabel = document.createElement("label");
-  modeLabel.textContent = "Play mode: ";
-  modeLabel.style.cssText = "display:inline-block;width:120px";
+    options.forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
 
-  var modeSelect = document.createElement("select");
-  modeSelect.style.cssText =
-    "margin-left:5px;padding:4px 8px;border-radius:3px;border:1px solid #999;font-size:13px";
-  [["local", "Local (both sides)"], ["cpu", "vs CPU (you are White)"]].forEach(function (opt) {
-    var o = document.createElement("option");
-    o.value = opt[0];
-    o.textContent = opt[1];
-    modeSelect.appendChild(o);
-  });
-  modeSelect.value = window.gameMode || "local";
-  modeSelect.addEventListener("change", function () {
-    window.gameMode = modeSelect.value;
-    if (typeof startGame === "function") startGame();
-  });
+    sel.addEventListener("change", function () {
+      onChange(sel.value);
+    });
 
-  var modeContainer = document.createElement("div");
-  modeContainer.style.cssText = "margin-bottom:10px";
-  modeContainer.appendChild(modeLabel);
-  modeContainer.appendChild(modeSelect);
-  panel.appendChild(modeContainer);
+    return sel;
+  }
 
-  // AI difficulty (only used when mode is CPU)
-  var diffLabel = document.createElement("label");
-  diffLabel.textContent = "CPU strength: ";
-  diffLabel.style.cssText = "display:inline-block;width:120px";
+  // ── Section Divider ─────────────────────────────────────────
+  var hr = document.createElement("hr");
+  hr.style.cssText = "border:none;border-top:1px solid #bbb;margin:8px 0";
+  panel.appendChild(hr);
 
-  var diffSelect = document.createElement("select");
-  diffSelect.style.cssText =
-    "margin-left:5px;padding:4px 8px;border-radius:3px;border:1px solid #999;font-size:13px";
-  [["easy", "Easy (random)"], ["medium", "Medium (depth 2)"], ["hard", "Hard (depth 3)"]].forEach(
-    function (opt) {
-      var o = document.createElement("option");
-      o.value = opt[0];
-      o.textContent = opt[1];
-      diffSelect.appendChild(o);
+  // ── 🎨 Piece & Board Colors ─────────────────────────────────
+  panel.appendChild(
+    makeRow(
+      "White Pieces:",
+      makeColorInput(state.whiteColor, function (v) {
+        state.whiteColor = v;
+        updateScene();
+      })
+    )
+  );
+
+  panel.appendChild(
+    makeRow(
+      "Black Pieces:",
+      makeColorInput(state.blackColor, function (v) {
+        state.blackColor = v;
+        updateScene();
+      })
+    )
+  );
+
+  panel.appendChild(
+    makeRow(
+      "Board Color:",
+      makeColorInput(state.boardColor, function (v) {
+        state.boardColor = v;
+        updateScene();
+      })
+    )
+  );
+
+  // ── 🎮 Game Mode ────────────────────────────────────────────
+  var modeSelect = makeSelect(
+    [
+      { value: "local", label: "Local (2 Players)" },
+      { value: "cpu", label: "Vs CPU" },
+    ],
+    function (v) {
+      window.gameMode = v;
+
+      difficultyRow.style.display = v === "cpu" ? "block" : "none";
+
+      if (typeof startGame === "function") {
+        startGame(); // restart game on mode change
+      }
     }
   );
-  diffSelect.value = window.aiDifficulty || "medium";
-  diffSelect.addEventListener("change", function () {
-    window.aiDifficulty = diffSelect.value;
-    if (window.gameMode === "cpu" && typeof startGame === "function") startGame();
-  });
 
-  var diffContainer = document.createElement("div");
-  diffContainer.style.cssText = "margin-bottom:0px";
-  diffContainer.appendChild(diffLabel);
-  diffContainer.appendChild(diffSelect);
-  panel.appendChild(diffContainer);
+  modeSelect.value = window.gameMode || "local";
 
-  // ── Mount panel ────────────────────────────────────────────────────────────
-  (document.getElementById("menu") || document.body).appendChild(panel);
-})();
+  panel.appendChild(makeRow("Game Mode:", modeSelect));
+
+  // ── 🤖 CPU Difficulty ───────────────────────────────────────
+  var difficultySelect = makeSelect(
+    [
+      { value: "easy", label: "Easy (random)" },
+      { value: "medium", label: "Medium (depth 2)" },
+      { value: "hard", label: "Hard (depth 3)" },
+    ],
+    function (v) {
+      window.aiDifficulty = v;
+
+      if (window.gameMode === "cpu" && typeof startGame === "function") {
+        startGame();
+      }
+    }
+  );
+
+  difficultySelect.value = window.aiDifficulty || "medium";
+
+  var difficultyRow = makeRow("CPU Level:", difficultySelect);
+
+  difficultyRow.style.display =
+    (window.gameMode || "local") === "cpu" ? "block" : "none";
+
+  panel.appendChild(difficultyRow);
+};
