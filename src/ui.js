@@ -43,6 +43,10 @@
     buildControlsUI(panel);
   }
 
+  if (typeof buildEnvironmentUI === "function") {
+    buildEnvironmentUI(panel);
+  }
+
   // ── Toggle button ──────────────────────────────
   var toggleBtn = document.createElement("button");
   toggleBtn.innerText = "⚙ Settings";
@@ -208,7 +212,7 @@ function showMainMenu() {
     if (typeof initSettingsUI === "function") {
         initSettingsUI();
     }
-
+    
     menu.appendChild(title);
     menu.appendChild(startBtn);
     document.body.appendChild(menu);
