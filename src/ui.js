@@ -38,6 +38,7 @@
     min-width:200px;
   `;
   root.appendChild(panel);
+  
   if (typeof buildControlsUI === "function") {
     buildControlsUI(panel);
   }
@@ -203,6 +204,10 @@ function showMainMenu() {
         document.body.removeChild(menu);
         showModeSelection();
     };
+
+    if (typeof initSettingsUI === "function") {
+        initSettingsUI();
+    }
 
     menu.appendChild(title);
     menu.appendChild(startBtn);
