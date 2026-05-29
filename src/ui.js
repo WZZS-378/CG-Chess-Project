@@ -343,6 +343,7 @@ function showModeSelection() {
 
         addShapes();
         startGame();
+        createMoveHistoryPanel();
     };
 
     // CPU game → go to difficulty select
@@ -399,6 +400,7 @@ function startCpuGame(difficulty, screen) {
 
     addShapes();
     startGame();
+    createMoveHistoryPanel();
 }
 
 function styleMenuButton(btn) {
@@ -420,4 +422,43 @@ function styleMenuButton(btn) {
     btn.onmouseleave = () => btn.style.background = "#4CAF50";
     btn.onmousedown = () => btn.style.transform = "scale(0.95)";
     btn.onmouseup = () => btn.style.transform = "scale(1)";
+}
+
+// Create move history panel
+function createMoveHistoryPanel() {
+  const panel = document.createElement("div");
+
+  panel.id = "moveHistoryPanel";
+
+  Object.assign(panel.style, {
+    position: "absolute",
+    bottom: "20px",
+    right: "20px",
+    width: "220px",
+    height: "300px",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    color: "white",
+    padding: "10px",
+    borderRadius: "10px",
+    overflowY: "auto",
+    fontFamily: "monospace",
+    fontSize: "14px",
+  });
+
+  const title = document.createElement("div");
+  title.innerText = "Move History";
+  Object.assign(title.style, {
+    fontWeight: "bold",
+    marginBottom: "8px",
+    textAlign: "center",
+  });
+
+  panel.appendChild(title);
+
+  const list = document.createElement("div");
+  list.id = "moveList";
+
+  panel.appendChild(list);
+
+  document.body.appendChild(panel);
 }
