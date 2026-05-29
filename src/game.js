@@ -30,13 +30,21 @@ function pieceTakenByMove(state, move) {
 }
 
 function applyGameMove(move) {
+    const san = moveToSAN(gameState, move);
+    console.log(san); // or store it
+
     var taken = pieceTakenByMove(gameState, move);
     gameState = applyMove(gameState, move);
+
+    gameState.moveHistory[gameState.moveHistory.length - 1].san = san;
+
     if (taken) {
         if (taken.color === 'white') capturedWhiteList.push({ type: taken.type });
         else capturedBlackList.push({ type: taken.type });
     }
+
     refreshBoard3D();
+    addMoveToHistory(san);
 }
 
 function resetCapturedLists() {
@@ -161,7 +169,6 @@ function startGame() {
     updateStatusDisplay();
     renderer.domElement.removeEventListener('click', onBoardClick);
     renderer.domElement.addEventListener('click', onBoardClick);
-    
 }
 
 function executeCpuMove() {
@@ -258,3 +265,140 @@ function cap(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function parseSAN(state, san) {
+    const moves = [];
+
+    // Get all legal moves for current player
+    for (let i = 0; i < 64; i++) {
+        const p = state.board[i];
+        if (!p || p.color !== state.turn) continue;
+
+        const legalMoves = getLegalMoves(state, i);
+        for (const to of legalMoves) {
+            moves.push({ from: i, to });
+        }
+    }
+
+    // Match SAN against generated moves
+    for (const move of moves) {
+        const generatedSAN = moveToSAN(state, move);
+        if (generatedSAN === san) {
+            return move;
+        }
+    }
+
+    return null; // invalid move
+}
+
+function moveToSAN(state, move) {
+    const piece = state.board[move.from];
+    const target = state.board[move.to];
+
+    // Castling
+    if (piece.type === 'king' && Math.abs(sqCol(move.to) - sqCol(move.from)) === 2) {
+        return sqCol(move.to) === 6 ? "O-O" : "O-O-O";
+    }
+
+    let notation = "";
+
+    // Piece letter (blank for pawn)
+    const pieceMap = {
+        pawn: "",
+        knight: "N",
+        bishop: "B",
+        rook: "R",
+        queen: "Q",
+        king: "K"
+    };
+
+    notation += pieceMap[piece.type];
+
+    // Disambiguation (if needed)
+    const ambiguous = findAmbiguousMoves(state, move);
+    if (ambiguous.file) notation += "abcdefgh"[sqCol(move.from)];
+    if (ambiguous.rank) notation += (sqRow(move.from) + 1);
+
+    // Capture
+    if (target || (piece.type === 'pawn' && move.to === state.enPassantSquare)) {
+        if (piece.type === 'pawn') {
+            notation += "abcdefgh"[sqCol(move.from)];
+        }
+        notation += "x";
+    }
+
+    // Destination square
+    notation += "abcdefgh"[sqCol(move.to)];
+    notation += (sqRow(move.to) + 1);
+
+    // Promotion
+    if (move.promotion) {
+        notation += "=" + pieceMap[move.promotion];
+    }
+
+    // Check / checkmate
+    const next = applyMove(state, move);
+    const status = getGameStatus(next);
+
+    if (status === 'checkmate') notation += "#";
+    else if (isInCheck(next.board, next.turn)) notation += "+";
+
+    return notation;
+}
+
+function findAmbiguousMoves(state, move) {
+    const piece = state.board[move.from];
+    let sameTypeMoves = [];
+
+    for (let i = 0; i < 64; i++) {
+        const p = state.board[i];
+        if (!p || p.type !== piece.type || p.color !== piece.color) continue;
+        if (i === move.from) continue;
+
+        const moves = getLegalMoves(state, i);
+        if (moves.includes(move.to)) {
+            sameTypeMoves.push(i);
+        }
+    }
+
+    let file = false, rank = false;
+
+    for (const idx of sameTypeMoves) {
+        if (sqCol(idx) === sqCol(move.from)) rank = true;
+        if (sqRow(idx) === sqRow(move.from)) file = true;
+    }
+
+    return { file, rank };
+}
+
+let moveHistory = [];
+let moveNumber = 1;
+
+function addMoveToHistory(move) {
+  const list = document.getElementById("moveList");
+
+  // If it's White's move → start new row
+  if (moveHistory.length % 2 === 0) {
+    const row = document.createElement("div");
+
+    row.innerText = `${moveNumber}. ${move}`;
+    row.id = `move-${moveNumber}`;
+
+    list.appendChild(row);
+  } else {
+    // Black move → append to same row
+    const row = document.getElementById(`move-${moveNumber}`);
+    row.innerText += ` ${move}`;
+    moveNumber++;
+  }
+
+  moveHistory.push(move);
+
+  // Auto scroll to bottom
+  list.scrollTop = list.scrollHeight;
+}
+
+function clearHistory() {
+  document.getElementById("moveList").innerHTML = "";
+  moveHistory = [];
+  moveNumber = 1;
+}
