@@ -138,6 +138,7 @@ window.buildControlsUI = function (panel) {
       difficultyRow.style.display = v === "cpu" ? "block" : "none";
 
       if (typeof startGame === "function") {
+        clearHistory();
         startGame(); // restart game on mode change
       }
     }
@@ -158,6 +159,7 @@ window.buildControlsUI = function (panel) {
       window.aiDifficulty = v;
 
       if (window.gameMode === "cpu" && typeof startGame === "function") {
+        clearHistory();
         startGame();
       }
     }

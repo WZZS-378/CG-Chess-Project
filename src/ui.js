@@ -330,6 +330,7 @@ function showEndScreen(resultText) {
     restart.onclick = () => {
         document.body.removeChild(screen);
 
+        clearHistory();
         addShapes();   // rebuild board
         startGame();   // restart logic
     };
@@ -373,9 +374,9 @@ function showModeSelection() {
         window.gameMode = 'local';
         document.body.removeChild(screen);
 
+        clearHistory();
         addShapes();
         startGame();
-        createMoveHistoryPanel();
     };
 
     // CPU game → go to difficulty select
@@ -430,9 +431,9 @@ function startCpuGame(difficulty, screen) {
 
     document.body.removeChild(screen);
 
+    clearHistory();
     addShapes();
     startGame();
-    createMoveHistoryPanel();
 }
 
 function styleMenuButton(btn) {
