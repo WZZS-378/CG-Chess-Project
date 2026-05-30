@@ -478,7 +478,9 @@ function addMoveToHistory(move) {
 }
 
 function clearHistory() {
-  document.getElementById("moveList").innerHTML = "";
+  const list = document.getElementById("moveList");
+  if (list) list.innerHTML = "";
+
   moveHistory = [];
   moveNumber = 1;
 }
