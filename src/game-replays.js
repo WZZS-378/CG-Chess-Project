@@ -19,12 +19,12 @@ const FAMOUS_GAMES = {
         moves: "Nf3 Nf6 c4 g6 Nc3 Bg7 d4 O-O Bf4 d5 Qb3 dxc4 Qxc4 c6 e4 Nbd7 Rd1 Nb6 Qc5 Bg4 Bg5 Na4 Qa3 Nxc3 bxc3 Nxe4 Bxe7 Qb6 Bc4 Rfe8 O-O Bxf3 gxf3 Rxe7 fxe4 Rxe4 Qb3 Qc7 Rd3 b5 Bxb5 cxb5 Qxb5 Rae8 Qd5 Qf4 Kg2 h5 Rf3 Qg4+ Rg3 Qf4 Rf3 Qc7 Qb5 Qe7 Qd5 h4 h3 Bh6 Rb1 Bf4 Rb7 Qf6 Rxa7 Re1 Qd7 Qg5+ Qg4 Qxg4+ hxg4 g5 Rd3 Rc1 d5 Ree1 d6 Rg1+ Kf3 h3 d7 h2"
     },
     fischer_spassky: {
-        name: "Fischer vs Spassky",
+        name: "Fischer vs Spassky, Game 6",
         white: "Bobby Fischer",
         black: "Boris Spassky",
         date: "1972",
         result: "1-0",
-        moves: "e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6 Nc3 Qc7 Be3 a6 f4 Ne5 Nf3 Be7 g4 Nxf3+ Qxf3 d6 O-O-O Nf6 g5 Ne8 f5 exf5 Bxf5 Be6 Bxe6 fxe6 Qh5 Bf8 Kb1 Nf6 Qf3 Rc8 e5 dxe5 Nxe5 Qc6 Nd7+ Nxd7 Qxf8 Kxf8 Rd8 Rxd8 Re1 Rd2 Be4"
+        moves: "c4 e6 Nf3 d5 d4 Nf6 Nc3 Be7 Bg5 O-O e3 h6 Bh4 b6 cxd5 Nxd5 Bxe7 Qxe7 Nxd5 exd5 Rc1 Be6 Qa4 c5 Qa3 Rc8 Bb5 a6 dxc5 bxc5 O-O Ra7 Be2 Nd7 Nd4 Qf8 Nxe6 fxe6 e4 d4 f4 Qe7 e5 Rb8 Bc4 Kh8 Qh3 Nf8 b3 a5 f5 exf5 Rxf5 Nh7 Rcf1 Qd8 Qg3 Re7 h4 Rbb7 e6 Rbc7 Qe5 Qe8 a4 Qd8 R1f2 Qe8 R2f3 Qd8 Bd3 Qe8 Qe4 Nf6 Rxf6 gxf6 Rxf6 Kg8 Bc4 Kh8 Qf4"
     }
 };
 
