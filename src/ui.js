@@ -209,12 +209,44 @@ function showMainMenu() {
         showModeSelection();
     };
 
+    const watchBtn = document.createElement("button");
+    watchBtn.innerText = "Watch Famous Games";
+
+    //Button styling
+    watchBtn.style.cssText = `
+        padding:16px 40px;
+        font-size:22px;
+        font-weight:bold;
+        background:#2196F3;
+        color:white;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        margin-top:20px;
+        transition:transform 0.1s ease, background 0.2s;
+    `;
+
+    //Interactions
+    watchBtn.onmouseenter = () => watchBtn.style.background = "#1976D2";
+    watchBtn.onmouseleave = () => watchBtn.style.background = "#2196F3";
+    watchBtn.onmousedown = () => watchBtn.style.transform = "scale(0.95)";
+    watchBtn.onmouseup = () => watchBtn.style.transform = "scale(1)";
+
+    //Watch games
+    watchBtn.onclick = () => {
+        document.body.removeChild(menu);
+        if (typeof showGameSelection === "function") {
+            showGameSelection();
+        }
+    };
+
     if (typeof initSettingsUI === "function") {
         initSettingsUI();
     }
     
     menu.appendChild(title);
     menu.appendChild(startBtn);
+    menu.appendChild(watchBtn);
     document.body.appendChild(menu);
 }
 
