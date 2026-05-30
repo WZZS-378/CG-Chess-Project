@@ -266,28 +266,108 @@ function cap(str) {
 }
 
 function parseSAN(state, san) {
-    const moves = [];
+    san = san.replace(/[+#]$/, ""); // strip check/mate
 
-    // Get all legal moves for current player
-    for (let i = 0; i < 64; i++) {
-        const p = state.board[i];
-        if (!p || p.color !== state.turn) continue;
+    // ── Castling ───────────────────────────────
+    if (san === "O-O" || san === "O-O-O") {
+        const kingPos = state.board.findIndex(
+            p => p && p.type === "king" && p.color === state.turn
+        );
 
-        const legalMoves = getLegalMoves(state, i);
+        const legalMoves = getLegalMoves(state, kingPos);
+
         for (const to of legalMoves) {
-            moves.push({ from: i, to });
+            if (Math.abs(sqCol(to) - sqCol(kingPos)) !== 2) continue;
+
+            if (
+                (san === "O-O" && sqCol(to) === 6) ||
+                (san === "O-O-O" && sqCol(to) === 2)
+            ) {
+                return { from: kingPos, to };
+            }
         }
+
+        return null;
     }
 
-    // Match SAN against generated moves
-    for (const move of moves) {
-        const generatedSAN = moveToSAN(state, move);
-        if (generatedSAN === san) {
-            return move;
-        }
+    // ── Piece type ─────────────────────────────
+    const pieceMap = {
+        N: "knight",
+        B: "bishop",
+        R: "rook",
+        Q: "queen",
+        K: "king"
+    };
+
+    let pieceType = "pawn";
+    let i = 0;
+
+    if (pieceMap[san[0]]) {
+        pieceType = pieceMap[san[0]];
+        i++;
     }
 
-    return null; // invalid move
+    // ── Destination ────────────────────────────
+    const destFile = san[san.length - 2];
+    const destRank = san[san.length - 1];
+
+    const toCol = "abcdefgh".indexOf(destFile);
+    const toRow = parseInt(destRank) - 1;
+    const to = toRow * 8 + toCol;
+
+    // ── Disambiguation ─────────────────────────
+    let disamb = san.slice(i, san.length - 2).replace("x", "");
+
+    let fromFile = null;
+    let fromRank = null;
+
+    if (disamb.length === 1) {
+        if (isNaN(disamb)) {
+            fromFile = "abcdefgh".indexOf(disamb);
+        } else {
+            fromRank = parseInt(disamb) - 1;
+        }
+    } else if (disamb.length === 2) {
+        fromFile = "abcdefgh".indexOf(disamb[0]);
+        fromRank = parseInt(disamb[1]) - 1;
+    }
+
+    // ── Find candidates ────────────────────────
+    const candidates = [];
+
+    for (let from = 0; from < 64; from++) {
+        const p = state.board[from];
+        if (!p || p.color !== state.turn) continue;
+        if (p.type !== pieceType) continue;
+
+        // Apply disambiguation filters
+        if (fromFile !== null && sqCol(from) !== fromFile) continue;
+        if (fromRank !== null && sqRow(from) !== fromRank) continue;
+
+        const legalMoves = getLegalMoves(state, from);
+        if (!legalMoves.includes(to)) continue;
+
+        candidates.push({ from, to });
+    }
+
+    // ── Resolve result ─────────────────────────
+    if (candidates.length === 1) {
+        return candidates[0];
+    }
+
+    if (candidates.length > 1) {
+        // 🔥 fallback: compare against generated SAN
+        for (const move of candidates) {
+            if (moveToSAN(state, move) === san) {
+                return move;
+            }
+        }
+
+        console.warn("Still ambiguous SAN:", san, candidates);
+        return candidates[0]; // deterministic fallback
+    }
+
+    return null;
 }
 
 function moveToSAN(state, move) {
