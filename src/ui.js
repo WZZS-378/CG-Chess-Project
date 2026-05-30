@@ -345,7 +345,6 @@ function showModeSelection() {
         clearHistory();
         addShapes();
         startGame();
-        createMoveHistoryPanel();
     };
 
     // CPU game → go to difficulty select
@@ -403,7 +402,6 @@ function startCpuGame(difficulty, screen) {
     clearHistory();
     addShapes();
     startGame();
-    createMoveHistoryPanel();
 }
 
 function styleMenuButton(btn) {
