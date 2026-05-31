@@ -1,8 +1,6 @@
 console.log("controls.js loaded");
 
-// This function will be called from ui.js and passed the main panel
 window.buildControlsUI = function (panel) {
-  // Wait until scene and functions are ready
   if (
     typeof scene === "undefined" ||
     typeof createChessBoard === "undefined" ||
@@ -26,32 +24,28 @@ window.buildControlsUI = function (panel) {
   }
 
   function updateScene() {
-    const whitePieceHex = hexToInt(state.whiteColor);
-    const blackPieceHex = hexToInt(state.blackColor);
-    const boardHex = hexToInt(state.boardColor);
+    var whitePieceHex = hexToInt(state.whiteColor);
+    var blackPieceHex = hexToInt(state.blackColor);
+    var boardHex = hexToInt(state.boardColor);
 
     createChessBoard(whitePieceHex, blackPieceHex, boardHex);
-
     currentWhitePieceColor = whitePieceHex;
     currentBlackPieceColor = blackPieceHex;
-
     refreshBoard3D();
 
-    if (typeof resetBoardInteraction === "function") {
-      resetBoardInteraction();
-    }
+    if (typeof resetBoardInteraction === "function") resetBoardInteraction();
+
+    // Keep clock faces in sync with piece colors
+    if (typeof refreshClockColors === "function") refreshClockColors();
   }
 
-  // ── Helper (same style as ui.js) ─────────────────────────────
   function makeRow(labelText, el) {
     var row = document.createElement("div");
-    row.style.cssText = "margin-bottom:8px";
-
+    row.style.marginBottom = "8px";
     var lbl = document.createElement("label");
     lbl.textContent = labelText;
     lbl.style.cssText =
       "display:inline-block;width:120px;font-size:13px;font-family:sans-serif";
-
     row.appendChild(lbl);
     row.appendChild(el);
     return row;
@@ -63,11 +57,9 @@ window.buildControlsUI = function (panel) {
     input.value = value;
     input.style.cssText =
       "width:40px;height:25px;border:none;border-radius:3px;cursor:pointer";
-
     input.addEventListener("input", function () {
       onChange(input.value);
     });
-
     return input;
   }
 
@@ -75,58 +67,53 @@ window.buildControlsUI = function (panel) {
     var sel = document.createElement("select");
     sel.style.cssText =
       "padding:3px 6px;border-radius:3px;border:1px solid #999;font-size:13px";
-
     options.forEach(function (o) {
       var opt = document.createElement("option");
       opt.value = o.value;
       opt.textContent = o.label;
       sel.appendChild(opt);
     });
-
     sel.addEventListener("change", function () {
       onChange(sel.value);
     });
-
     return sel;
   }
 
-  // ── Section Divider ─────────────────────────────────────────
+  // ── Divider ──────────────────────────────────────────────
   var hr = document.createElement("hr");
   hr.style.cssText = "border:none;border-top:1px solid #bbb;margin:8px 0";
   panel.appendChild(hr);
 
-  // ── 🎨 Piece & Board Colors ─────────────────────────────────
+  // ── Colors ───────────────────────────────────────────────
   panel.appendChild(
     makeRow(
       "White Pieces:",
       makeColorInput(state.whiteColor, function (v) {
         state.whiteColor = v;
         updateScene();
-      })
-    )
+      }),
+    ),
   );
-
   panel.appendChild(
     makeRow(
       "Black Pieces:",
       makeColorInput(state.blackColor, function (v) {
         state.blackColor = v;
         updateScene();
-      })
-    )
+      }),
+    ),
   );
-
   panel.appendChild(
     makeRow(
       "Board Color:",
       makeColorInput(state.boardColor, function (v) {
         state.boardColor = v;
         updateScene();
-      })
-    )
+      }),
+    ),
   );
 
-  // ── 🎮 Game Mode ────────────────────────────────────────────
+  // ── Game Mode ────────────────────────────────────────────
   var modeSelect = makeSelect(
     [
       { value: "local", label: "Local (2 Players)" },
@@ -134,21 +121,17 @@ window.buildControlsUI = function (panel) {
     ],
     function (v) {
       window.gameMode = v;
-
       difficultyRow.style.display = v === "cpu" ? "block" : "none";
-
       if (typeof startGame === "function") {
         clearHistory();
-        startGame(); // restart game on mode change
+        startGame();
       }
-    }
+    },
   );
-
   modeSelect.value = window.gameMode || "local";
-
   panel.appendChild(makeRow("Game Mode:", modeSelect));
 
-  // ── 🤖 CPU Difficulty ───────────────────────────────────────
+  // ── CPU Difficulty ───────────────────────────────────────
   var difficultySelect = makeSelect(
     [
       { value: "easy", label: "Easy (random)" },
@@ -157,20 +140,16 @@ window.buildControlsUI = function (panel) {
     ],
     function (v) {
       window.aiDifficulty = v;
-
       if (window.gameMode === "cpu" && typeof startGame === "function") {
         clearHistory();
         startGame();
       }
-    }
+    },
   );
-
   difficultySelect.value = window.aiDifficulty || "medium";
 
   var difficultyRow = makeRow("CPU Level:", difficultySelect);
-
   difficultyRow.style.display =
     (window.gameMode || "local") === "cpu" ? "block" : "none";
-
   panel.appendChild(difficultyRow);
 };
